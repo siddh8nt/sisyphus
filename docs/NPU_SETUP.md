@@ -30,7 +30,9 @@ the docs: `Llama-3.2-1B-Instruct-Q4_0`, `gemma-2-2b-it-Q4_0`.
 ## Prerequisites on the laptop
 1. **Docker Desktop** (for the cross-compile toolchain). No local Hexagon SDK/NDK
    needed — the image bundles NDK r28b + Hexagon SDK 6.6.0.0.
-2. **Android platform-tools (adb)** on PATH. Verify: `adb version`.
+2. **Android platform-tools (adb).** The deploy scripts auto-detect it on PATH or
+   at the standard SDK path `%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe`
+   (or pass `-AdbPath`). On this laptop it's already present there (v37.0.1). ✅
    - Enable USB debugging on the phone: Settings → About → tap *Build number* 7×
      → Developer options → USB debugging. Plug in USB, accept the RSA prompt.
    - Wireless: `adb tcpip 5555` then `adb connect <phoneIp>:5555` (USB first).

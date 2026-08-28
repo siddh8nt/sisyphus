@@ -129,7 +129,8 @@ Tasks:
   v0.7; on-device run contract from run.py)
 - [x] `deploy-npu.ps1` / `start-npu.ps1` (+ `build-npu.ps1` one-time Docker build).
   All ASCII, parse-clean.
-- [ ] Laptop pre-flight: install adb (platform-tools). Docker already present.
+- [x] Laptop pre-flight: adb present (v37.0.1 at LOCALAPPDATA SDK; scripts
+  auto-detect it, no PATH change). Docker present (29.5.2).
 - [ ] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
 - [ ] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
 - [ ] Benchmark NPU vs CPU tok/s + prefill → memory.md

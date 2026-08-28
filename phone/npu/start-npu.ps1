@@ -17,18 +17,25 @@ param(
   [int]$Port = 8080,
   [int]$Ctx = 4096,
   [string]$OrchBase = "http://127.0.0.1:4100",
+  [string]$AdbPath = "",
   [switch]$Stop
 )
 $ErrorActionPreference = "Stop"
 $dir = "/data/local/tmp/llama.cpp"
 
-function Adb { param([Parameter(ValueFromRemainingArguments)]$args)
-  if ($Serial) { & adb -s $Serial @args } else { & adb @args }
+# Resolve adb: explicit override -> PATH -> standard Android SDK location.
+function Resolve-Adb { param([string]$Override)
+  if ($Override -and (Test-Path $Override)) { return $Override }
+  $onPath = Get-Command adb -ErrorAction SilentlyContinue
+  if ($onPath) { return $onPath.Source }
+  $sdk = Join-Path $env:LOCALAPPDATA "Android\Sdk\platform-tools\adb.exe"
+  if (Test-Path $sdk) { return $sdk }
+  throw "adb not found. Install Android platform-tools or pass -AdbPath (see docs/NPU_SETUP.md)."
 }
+$script:AdbExe = Resolve-Adb $AdbPath
 
-# Resolve adb
-if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
-  throw "adb not found on PATH. Install Android platform-tools (see docs/NPU_SETUP.md)."
+function Adb { param([Parameter(ValueFromRemainingArguments)]$args)
+  if ($Serial) { & $script:AdbExe -s $Serial @args } else { & $script:AdbExe @args }
 }
 
 if ($Stop) {

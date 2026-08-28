@@ -224,3 +224,13 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - Remaining Phase 7 needs hardware: tune worker prompt vs real outputs, 7B stretch,
   1 flawless real-phone run.
 - Running: orchestrator b9hsa5989, fleet bgrp7o7kh.
+
+## 2026-08-29 — adb pre-flight resolved
+- User already had Android SDK platform-tools installed:
+  C:\Users\siddh\AppData\Local\Android\Sdk\platform-tools\adb.exe (adb v37.0.1,
+  1.0.41). Not on PATH. `adb devices` works (empty list, no phone yet).
+- Rather than edit system PATH, made deploy-npu.ps1/start-npu.ps1 auto-resolve
+  adb: -AdbPath override -> PATH -> %LOCALAPPDATA%\Android\Sdk\platform-tools\
+  adb.exe. Verified the resolver finds it. No system change needed.
+- Pre-flight remaining before iQOO day: build the NPU bundle (Docker) + download
+  the Q4_0 model. Docker present (29.5.2).

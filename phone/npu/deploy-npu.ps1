@@ -22,17 +22,25 @@ param(
   [int]$Ctx = 4096,
   [string]$OrchBase = "http://127.0.0.1:4100",
   [string]$BundleDir = "$PSScriptRoot\bundle",
+  [string]$AdbPath = "",
   [switch]$SkipPush
 )
 $ErrorActionPreference = "Stop"
 $dir = "/data/local/tmp/llama.cpp"
 
-function Adb { param([Parameter(ValueFromRemainingArguments)]$args)
-  if ($Serial) { & adb -s $Serial @args } else { & adb @args }
+# Resolve adb: explicit override -> PATH -> standard Android SDK location.
+function Resolve-Adb { param([string]$Override)
+  if ($Override -and (Test-Path $Override)) { return $Override }
+  $onPath = Get-Command adb -ErrorAction SilentlyContinue
+  if ($onPath) { return $onPath.Source }
+  $sdk = Join-Path $env:LOCALAPPDATA "Android\Sdk\platform-tools\adb.exe"
+  if (Test-Path $sdk) { return $sdk }
+  throw "adb not found. Install Android platform-tools or pass -AdbPath (see docs/NPU_SETUP.md)."
 }
+$script:AdbExe = Resolve-Adb $AdbPath
 
-if (-not (Get-Command adb -ErrorAction SilentlyContinue)) {
-  throw "adb not found on PATH. Install Android platform-tools (see docs/NPU_SETUP.md)."
+function Adb { param([Parameter(ValueFromRemainingArguments)]$args)
+  if ($Serial) { & $script:AdbExe -s $Serial @args } else { & $script:AdbExe @args }
 }
 
 # Confirm a device is connected + authorized.
@@ -67,4 +75,4 @@ if (-not $SkipPush) {
 
 # Start the server + register (delegates to start-npu.ps1).
 & "$PSScriptRoot\start-npu.ps1" -Name $Name -Serial $Serial -Model $Model -Arch $Arch `
-  -HtpDevice $HtpDevice -Port $Port -Ctx $Ctx -OrchBase $OrchBase
+  -HtpDevice $HtpDevice -Port $Port -Ctx $Ctx -OrchBase $OrchBase -AdbPath $script:AdbExe
