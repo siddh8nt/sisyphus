@@ -253,3 +253,73 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - **Decision:** keep llama.cpp Hexagon (llama-server) as PRIMARY. NexaSDK/GenieX =
   reference + last-resort Plan B (its QNN/AI-Hub path = perf Plan C, only if we
   ship an on-phone app). Recorded in docs/NPU_SETUP.md.
+
+## 2026-08-29 — SESSION END / STRATEGY LOCKED + MORNING START
+
+### >>> START HERE NEXT SESSION <<<
+1. **Fix Docker Desktop** (it crashed on launch): dialog error was
+   "initializing Inference manager: remove ...\Docker\run\dockerInference: file
+   cannot be accessed" = stale socket from the Model Runner feature. Fix (safe,
+   do NOT "Reset to factory defaults"): Quit Docker Desktop -> fully stop its
+   processes -> delete stale socket `C:\Users\siddh\AppData\Local\Docker\run\
+   dockerInference` -> relaunch -> if it recurs, disable Docker "Model Runner"/
+   inference feature (we only need plain Linux containers).
+2. **Build the llama.cpp Hexagon NPU bundle** (phone-independent): once Docker is
+   up, run `phone/npu/build-npu.ps1`. Then download a Q4_0 coder GGUF into
+   `phone/npu/bundle/gguf/` (Qwen2.5-Coder-3B-Instruct-Q4_0; fallback
+   Llama-3.2-3B-Instruct-Q4_0). This is the last phone-independent NPU prep.
+3. To run/demo the system: `npm start` + `npm run mock-fleet` (background tasks
+   were stopped at session end; nothing is running now).
+4. When iQOOs arrive: CPU one-liner per phone -> `deploy-npu.ps1 -Name iqoo-N`
+   -> benchmark NPU vs CPU -> chaos test (start-npu.ps1 -Stop).
+
+### DECISIONS LOCKED THIS SESSION
+- **Architecture UNCHANGED.** Keep Sisyphus as built (laptop Claude Code
+  orchestrates a phone fleet). The cloud agent is the THESIS ("mobile edge
+  compute for coding agents like Claude Code"), not a flaw. **The proposal
+  qualified TOP 25 of thousands** -- do not second-guess the core premise.
+  (I raised a "no cloud" concern; user correctly overrode it. Dropped.)
+- **NPU runtime = llama.cpp Hexagon (llama-server), primary.** Reasons that are
+  NOT sunk cost: (a) only option giving a standalone on-phone OpenAI *server*,
+  which a laptop-orchestrated fleet requires; (b) its NPU engine IS the same
+  ggml-hexagon GenieX uses for GGUF anyway; (c) drops into the finished
+  architecture with scripts already written. GenieX on Android = Kotlin/Java SDK
+  embedded in an app only (NO standalone server) -> would require building an
+  Android app -> more work.
+- **SEQUENCING (user's call, correct):** get EVERYTHING working with llama.cpp
+  (CPU + NPU + dashboard + fallback + a real /sisyphus run) FIRST. ONLY THEN, as
+  an additive phase, build a **native worker-view Android app + GenieX** for the
+  hackathon's phone-first points. Never jeopardize a working demo for the upgrade.
+
+### HACKATHON CONTEXT (why phase-2 native app matters) — iQOO Hackathon 2026
+- iQOO x Reskilll, "phone-first" AI hackathon, 30h city battles (Bengaluru Aug29,
+  Pune Sep5, Chennai Sep12, Hyderabad Sep26), Grand Finale Bengaluru Oct 9-11
+  (48h). Team <=3. Free. (Confirm OUR city/date with user.)
+- **Rubric:** End product 30% (jury) | Novelty & impact 20% (jury) | Creative
+  phone use camera/voice/on-device-AI 15% (DEVICE TELEMETRY) | Technical depth
+  15% (jury) | Office Kit usage 10% (DEVICE TELEMETRY) | Demo & presentation 10%.
+  **25% is automated device telemetry - "no way to fake it in your pitch."**
+- Hard rules: "The demo MUST run on the iQOO phone." "Local/open-source LLMs on
+  the phone NPU." Tracks (7) incl **Developer Tools** (our lane). Office Kit =
+  phone<->laptop bridge (screen mirror/clipboard/file/remote), pc.vivoglobal.com.
+- IMPLICATION for phase-2: the phone-first 25% (creative phone use + Office Kit)
+  + "demo on phone" is why the native app / Office Kit layer is worth building
+  AFTER the core is solid. User's phase-2 idea: native worker-view app, GenieX on
+  NPU, display web UI on phone via Office Kit. (Note to revisit: "Claude Code on
+  phone via Claude app" -- Claude Code != the Claude mobile app; clarify the
+  demo-on-phone mechanics when we get there.)
+
+### GENIEX RISK (why it's phase-2, timeboxed) — for the record
+NexaSDK = Qualcomm's official GenieX. Risks are TIME/INTEGRATION not capability:
+young SDK (v0.3.1, thin/moving docs); Android = app build (Gradle/NDK/signing),
+not a drop-in; QNN/AI-Hub path constrains models (Phi-3/Gemma/Whisper, not coder)
+and may need self-compiling via AI Hub; new streaming+telemetry app->orchestrator
+plumbing; slow on-device debug; one app crash takes down both runtimes (vs clean
+separate CPU/NPU processes today). Hedge: keep llama-server for inference even in
+the native-app phase; the app can be UI/Office-Kit/telemetry only.
+
+### STATE OF THE BUILD (all green, pushed to github.com/siddh8nt/sisyphus)
+Phases 0-5 DONE+verified. Phase 6 kit DONE (real onboarding needs phone). Phase
+6.5 research+scripts DONE (adb auto-detected v37.0.1; bundle build blocked on
+Docker crash above). Phase 7 mock-hardening DONE (chaos tests pass, self-heal,
+3/3 rehearsals). Phase 8 = iQOO day. Latest commit before this note: 2160ebd.

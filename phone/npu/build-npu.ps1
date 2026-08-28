@@ -39,8 +39,14 @@ try {
   Pop-Location
 }
 
-$pkg = Join-Path $repo "pkg-android\llama.cpp"
-if (-not (Test-Path $pkg)) { throw "Build did not produce $pkg. Check the build output above." }
+# Auto-detect the install tree (build.py names it pkg-<target>/llama.cpp,
+# e.g. pkg-adb or pkg-android depending on the target flag).
+$pkg = Get-ChildItem -Path $repo -Directory -Filter "pkg-*" -ErrorAction SilentlyContinue |
+  ForEach-Object { Join-Path $_.FullName "llama.cpp" } |
+  Where-Object { Test-Path (Join-Path $_ "bin") } |
+  Select-Object -First 1
+if (-not $pkg) { throw "Build did not produce a pkg-*/llama.cpp tree with bin/. Check the build output above." }
+Write-Host "Found install tree: $pkg" -ForegroundColor Green
 
 Write-Host "Staging bundle -> $BundleDir" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $BundleDir | Out-Null

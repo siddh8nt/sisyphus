@@ -3,6 +3,15 @@
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done (checks passed). Record the
 date each phase passes.
 
+> **STATUS @ 2026-08-29 session end.** Phases 0-5 DONE+verified. Phase 6 kit DONE
+> (real onboarding needs a phone). Phase 6.5 research+scripts DONE; **bundle build
+> BLOCKED on a Docker Desktop crash** (see morning-start in memory.md). Phase 7
+> mock-hardening DONE. NEXT: fix Docker -> `build-npu.ps1` -> download Q4_0 model.
+> Then iQOO onboarding when phones arrive. Then **Phase 9** (phone-first native
+> app) for hackathon rubric points. Nothing is running (start with `npm start` +
+> `npm run mock-fleet`). Full context + decisions: **read the last entry of
+> memory.md first.**
+
 ---
 
 ## Phase 0 — Scaffold & docs
@@ -131,7 +140,9 @@ Tasks:
   All ASCII, parse-clean.
 - [x] Laptop pre-flight: adb present (v37.0.1 at LOCALAPPDATA SDK; scripts
   auto-detect it, no PATH change). Docker present (29.5.2).
-- [ ] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
+- [~] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
+  — BLOCKED: Docker Desktop crashed on launch (stale Model Runner socket at
+  %LOCALAPPDATA%\Docker\run\dockerInference). Fix steps in memory.md morning-start.
 - [ ] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
 - [ ] Benchmark NPU vs CPU tok/s + prefill → memory.md
 - [ ] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
@@ -172,3 +183,25 @@ Tasks:
 **Acceptance:** 3 iQOO online, full run, all three generating in parallel, max
 NPU badges (target 3).
 **Status:** [ ] · **Passed:** —
+
+---
+
+## Phase 9 — Phone-first native app + GenieX (hackathon rubric) [FUTURE]
+Additive layer, started ONLY once Phases 0-8 are bulletproof. Banks the iQOO
+Hackathon's phone-first score (25% device telemetry: creative phone use + Office
+Kit; "demo must run on the phone"). See prd.md "Strategy / roadmap" + memory.md.
+Tasks (draft):
+- [ ] Native Android worker-view app (Kotlin) — registers with orchestrator,
+  shows the worker view natively, reports telemetry.
+- [ ] GenieX SDK (`com.qualcomm.qti:geniex-android`) for on-NPU inference inside
+  the app (timeboxed; keep llama-server as the standing fallback).
+- [ ] Office Kit integration so the dashboard/demo runs on the phone (screen
+  mirror / bridge) — earns the Office Kit 10%.
+- [ ] Add a phone-feature touch (voice input?) for the "creative phone use" 15%.
+- [ ] Clarify the "run Claude Code on the phone" demo mechanic (Claude Code is a
+  CLI, not the Claude mobile app — decide the actual on-phone demo surface).
+
+**Acceptance:** demo runs on the iQOO phone; device telemetry registers phone
+use + Office Kit; NPU inference in-app (or via llama-server) works; core demo
+still passes.
+**Status:** [ ] FUTURE (after core is solid) · **Passed:** —

@@ -65,3 +65,37 @@ If Hexagon NPU bring-up cannot be made reliable on our devices in time, we ship
 CPU-only and describe NPU as "supported architecture, device bring-up pending."
 The dual-runtime design and fallback path make this a graceful degradation, not
 a failure.
+
+---
+
+## Competition context (added 2026-08-29)
+Target event: **iQOO Hackathon 2026** (iQOO x Reskilll) — a **phone-first** AI
+hackathon, 30h city battles + a 48h Grand Finale (Bengaluru, Oct 9-11). Our
+proposal — "mobile edge compute for coding agents like Claude Code" — **qualified
+in the top 25 of thousands of submissions.** The cloud frontier agent (Claude
+Code) is the deliberate premise, not a compromise.
+
+**Judging rubric** (25% is automated device telemetry, unfakeable):
+End product 30% · Novelty & impact 20% · Creative phone use (camera/voice/
+on-device AI) 15% (telemetry) · Technical depth 15% · Office Kit usage 10%
+(telemetry) · Demo & presentation 10%. Hard rules: **the demo must run on the
+iQOO phone**; **local/open-source LLMs on the phone NPU, on-device**. Track:
+**Developer Tools**.
+
+## Strategy / roadmap
+- **Phase 1 (now) — make it work & win the engineering story.** Core Sisyphus on
+  llama.cpp for both runtimes: CPU (Ollama) + NPU (Hexagon `llama-server`),
+  orchestrated from the laptop, live dashboard, proven fallback. This is built
+  and green on mocks; remaining is the NPU bundle build + real iQOO bring-up.
+- **Phase 2 (only once Phase 1 is bulletproof) — bank the phone-first rubric.**
+  Build a **native Android worker-view app** (GenieX on the NPU is the natural
+  fit here) and lean on **Office Kit** so the demo runs on the phone and the
+  device-telemetry 25% (creative phone use + Office Kit) is earned. Additive;
+  never at the expense of a working demo. GenieX is timeboxed with llama-server
+  as the standing fallback. See docs/NPU_SETUP.md for the llama.cpp-vs-GenieX
+  rationale and docs/memory.md for the full decision log.
+
+## Non-goals (updated)
+Removed the "no cloud" non-goal framing as a virtue: the cloud coding agent is
+the product's core. Sisyphus itself is still never deployed to a cloud host — the
+runtime is the laptop + hotspot; the only cloud call is the Claude API (the agent).
