@@ -16,6 +16,7 @@ server/data/
 *.gguf
 *.bin
 phone/npu/bundle/
+phone/npu/_build/
 
 # Logs
 *.log

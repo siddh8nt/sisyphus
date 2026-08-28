@@ -122,18 +122,24 @@ real telemetry + token counts. Record real tok/s in memory.md.
 
 ---
 
-## Phase 6.5 — NPU runtime bring-up (OnePlus first)
+## Phase 6.5 — NPU runtime bring-up (now iQOO-first; OnePlus skipped by user)
 Tasks:
-- [ ] RESEARCH first: current llama.cpp Hexagon docs/artifacts → `docs/NPU_SETUP.md`
-- [ ] `deploy-npu.ps1` / `start-npu.ps1`
-- [ ] Enable USB debugging, deploy, register NPU endpoint
+- [x] RESEARCH: current upstream llama.cpp Hexagon recipe → `docs/NPU_SETUP.md`
+  (arch v81 = iQOO 15 / 8 Elite Gen 5 confirmed supported; Q4_0; Docker toolchain
+  v0.7; on-device run contract from run.py)
+- [x] `deploy-npu.ps1` / `start-npu.ps1` (+ `build-npu.ps1` one-time Docker build).
+  All ASCII, parse-clean.
+- [ ] Laptop pre-flight: install adb (platform-tools). Docker already present.
+- [ ] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
+- [ ] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
 - [ ] Benchmark NPU vs CPU tok/s + prefill → memory.md
 - [ ] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
 
-**Acceptance:** full demo where OnePlus completes a task on Hexagon NPU (NPU
+**Acceptance:** full demo where a phone completes a task on Hexagon NPU (NPU
 badge, `usage` counts) AND a forced-failure run with seamless CPU fallback.
 Time-box: 2 sessions → Plan B (NexaSDK) → 2 sessions → ship CPU-only, document.
-**Status:** [ ] · **Passed:** —
+**Status:** [~] research + scripts DONE (phone-independent); on-device bring-up
+awaits iQOO phones. · **Passed:** —
 
 ---
 

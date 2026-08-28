@@ -169,3 +169,37 @@ why, bugs + fix, gotchas that must not be rediscovered.
   pass `bash -n`, LF-only. Real OnePlus onboarding = Phase 6 acceptance, needs the
   user's phone.
 - Running: orchestrator brkoxgdro, fleet byrhcu1it.
+
+## 2026-08-29 — Phase 6.5 NPU research + scripts (plan pivot: iQOO-first)
+- **Plan change (user):** skipping the OnePlus dress rehearsal; going straight to
+  the iQOO 15 demo phones (arriving later). So iQOO day = first real hardware.
+  Mitigation: do all phone-independent NPU prep NOW so onboarding is paste-and-go.
+- **Research (current upstream llama.cpp, Aug 2026):**
+  * Hexagon backend merged into ggml-org/llama.cpp; docs at
+    docs/backend/snapdragon/README.md; scripts scripts/snapdragon/{build,run}.py.
+  * Build via Docker toolchain `ghcr.io/snapdragon-toolchain/arm64-android:v0.7`
+    (bundles NDK r28b + Hexagon SDK 6.6.0.0). `python scripts/snapdragon/build.py
+    --target adb`. No official prebuilt binaries — must build (Docker present on
+    laptop: 29.5.2).
+  * Build emits per-arch HTP libs: v73(8g2) v75(8g3) v79(8 Elite) **v81(8 Elite
+    Gen 5 / SM8850 = iQOO 15)** + libggml-hexagon.so. Our arch = **v81**. Confirmed
+    supported. This is the key go/no-go fact.
+  * Model quant: **Q4_0** required. Primary Qwen2.5-Coder-3B-Instruct-Q4_0;
+    proven fallback Llama-3.2-3B-Instruct-Q4_0 if Qwen hits an unsupported op.
+  * On-device contract (from run.py): dir /data/local/tmp/llama.cpp, libs ./lib,
+    bins ./bin, models ./gguf; env `LD_LIBRARY_PATH=./lib ADSP_LIBRARY_PATH=./lib
+    GGML_HEXAGON_DEVICES=HTP0 GGML_HEXAGON_ARCH=v81`; run `./bin/llama-server -m
+    gguf/<model> -ngl 99 -c 4096 --host 0.0.0.0 --port 8080`. NPU acts as "GPU"
+    for -ngl. Perf ref: Llama-1B Q4_0 ~169 tok/s prefill / ~51 gen.
+- **Built:** docs/NPU_SETUP.md (full recipe + fallback contract + troubleshooting),
+  phone/npu/{build-npu,deploy-npu,start-npu}.ps1. deploy pushes bundle+model,
+  detects phone Wi-Fi IP over adb, starts llama-server, polls /v1/models,
+  registers runtime=npu with SAME name as CPU endpoint (groups into one phone).
+  start-npu -Stop = chaos test (kill NPU -> CPU fallback).
+- **GOTCHA (Windows PowerShell 5.1):** em dash `—` in a .ps1 string is read as a
+  CP1252 curly close-quote (byte 0x94 -> U+201D), which PS treats as a string
+  terminator -> parse error. FIX: keep .ps1 files ASCII-only. All 3 scripts now
+  parse-clean + ASCII-verified.
+- **Pre-flight remaining:** install adb (platform-tools) on the laptop (NOT yet
+  installed); build the bundle via Docker + download the Q4_0 model. Both
+  phone-independent, can be done anytime before the phones arrive.
