@@ -40,12 +40,20 @@ export function getActiveSession() {
   return session;
 }
 
-/** Start a session lazily; if one exists but has no prompt yet, fill it in. */
+/**
+ * Start a session lazily. If one exists but has no prompt yet, fill it in. If a
+ * NEW, different prompt arrives while a session is still active, the previous
+ * flow was abandoned (Claude never called sisyphus_complete) — start fresh so
+ * stats don't accumulate across runs.
+ */
 export function ensureSession(prompt) {
   if (!session) return startSession(prompt || '');
   if (prompt && !session.prompt) {
     session.prompt = prompt;
     store.updateSessionPrompt(session.sessionId, prompt);
+  } else if (prompt && session.prompt && prompt !== session.prompt) {
+    log.warn('previous session was not completed — starting a fresh one');
+    return startSession(prompt);
   }
   return { sessionId: session.sessionId };
 }

@@ -203,3 +203,24 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - **Pre-flight remaining:** install adb (platform-tools) on the laptop (NOT yet
   installed); build the bundle via Docker + download the Q4_0 model. Both
   phone-independent, can be done anytime before the phones arrive.
+
+## 2026-08-29 — Phase 7 hardening (mock parts DONE)
+- **Chaos tests (both PASS):**
+  * Kill phone MID-GENERATION (destroy sockets while streaming) → generate throws
+    → retry → endpoint dead → Claude fallback in ~0.6s. No hang, no unhandled
+    rejection in the orchestrator.
+  * Kill NPU endpoint (keep CPU) → health check flips activeRuntime npu→cpu within
+    ~6s → task completes on CPU (not cloud), narrated "NPU endpoint on X is
+    unavailable — routing this task to CPU." fallback=false.
+- **BUG/robustness fix:** abandoned session (Claude never calls sisyphus_complete)
+  caused the NEXT flow's stats to accumulate (saw onDevice=4). Fix: ensureSession
+  now starts a FRESH session when a new, different prompt arrives while a session
+  is still active. Verified self-heal (stale open session → new flow → clean 2/1/1).
+- **3 consecutive mock rehearsals FLAWLESS:** each 3 on-device / 2 cloud / 1 NPU /
+  153 tok saved / ~3.8s. Satisfies the mock-fleet part of Phase 7 acceptance.
+- DEMO_SCRIPT.md expanded: minute-by-minute run sheet, full pre-demo checklist
+  (hotspot/firewall/reset habits.json/worker views), contingencies w/ the proven
+  chaos stories, reset-between-runs.
+- Remaining Phase 7 needs hardware: tune worker prompt vs real outputs, 7B stretch,
+  1 flawless real-phone run.
+- Running: orchestrator b9hsa5989, fleet bgrp7o7kh.

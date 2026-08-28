@@ -145,15 +145,20 @@ awaits iQOO phones. · **Passed:** —
 
 ## Phase 7 — Hardening & demo polish
 Tasks:
-- [ ] Timeout/chaos tests (kill mock mid-gen → retry/fallback visible)
-- [ ] Dashboard empty/error states
-- [ ] Tune worker prompt vs real outputs
-- [ ] Tune demo prompt for reliable ~3-phone/2-claude split
-- [ ] `DEMO_SCRIPT.md` run sheet + pre-demo checklist + contingencies
-- [ ] (stretch) qwen2.5-coder:7b on one phone CPU
+- [x] Timeout/chaos tests: kill phone mid-generation → retry→Claude fallback
+  (~0.6s, no hang); kill NPU endpoint → transparent CPU switch, narrated. BOTH PASS.
+- [x] Robustness: abandoned-session self-heal (new prompt → fresh session, stats
+  don't accumulate if sisyphus_complete was missed)
+- [x] Dashboard empty/error states (0 phones, no session, reconnecting) verified
+- [ ] Tune worker prompt vs real outputs (needs real phone)
+- [~] Tune demo prompt for reliable ~3/2 split (prompt set; final tune on hardware)
+- [x] `DEMO_SCRIPT.md` run sheet + pre-demo checklist + contingencies
+- [ ] (stretch) qwen2.5-coder:7b on one phone CPU (needs phone)
 
-**Acceptance:** 3 consecutive flawless mock rehearsals; 1 flawless real-phone run.
-**Status:** [ ] · **Passed:** —
+**Acceptance:** 3 consecutive flawless mock rehearsals (→ 3/3 PASS, consistent
+3 on-device/2 cloud/1 NPU/153 saved/~3.8s); 1 flawless real-phone run (pending
+iQOO hardware).
+**Status:** [~] mock hardening DONE; real-phone run awaits iQOO. · **Passed:** —
 
 ---
 
