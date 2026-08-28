@@ -44,9 +44,11 @@ orchestrator prefers the NPU endpoint when healthy, else CPU.
   body: `{ name, ip, port, model, runtime: "npu"|"cpu", hw? }`
   → `{ phoneId, endpointId }`
   Idempotent by `(name, runtime)`.
-- `POST /api/phones/:id/heartbeat`  (`:id` = endpointId)
+- `POST /api/phones/:id/heartbeat`  (`:id` = **phoneId** — telemetry is a
+  physical-phone property; `setup.sh` gets the phoneId from register)
   body: `{ battery, batteryTempC, cpuLoad, memUsedMB, memTotalMB }`
-  Sent by `telemetry.sh` every 3s. Endpoint `online` if heartbeat < 10s old.
+  Sent by `telemetry.sh` every 3s. Logical phone `online` if heartbeat < 10s old.
+  Which runtime is usable is decided by per-endpoint health checks, not heartbeats.
 - `GET /api/phones` → array of logical phones:
   `{ phoneId, name, status, activeRuntime, endpoints: [{endpointId, runtime, ip, port, model, healthy, status}], telemetry, sessionTotals: {tasksCompleted, tokensIn, tokensOut, avgTokPerSec} }`
 
@@ -77,7 +79,9 @@ Envelope: `{ type, ts, sessionId, payload }`. Types:
 - `task_state` — `{ taskId, state, phoneId?, runtime?, detail? }`
 - `token` — `{ taskId, phoneId, text }` (streamed output chunk)
 - `task_result` — `{ taskId, status, runtime, phoneId?, tokensIn, tokensOut, durationMs, tokPerSec, fallback }`
-- `phone_update` — `{ phoneId, status, activeRuntime, telemetry, sessionTotals }`
+- `phone_update` — the **full serialized logical phone** (superset of
+  `{ phoneId, name, status, activeRuntime, endpoints[], telemetry, sessionTotals }`).
+  Emitted on register, heartbeat, health change, and status flip.
 
 Clients: dashboard subscribes to all; worker view filters by its phoneId. On
 connect the server sends a `hello` snapshot: current phones + active session.

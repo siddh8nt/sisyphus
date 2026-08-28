@@ -41,3 +41,23 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - Resolved versions: vite 6.4.3, react 18.3.1, tailwind 3.4.19, ws 8.21.3,
   express 4.22.2, qrcode 1.5.4, better-sqlite3 13.0.3, mcp-sdk 1.30.0.
 - `npm install` at root: 293 packages, 0 vulnerabilities, clean.
+
+## 2026-08-29 — Phase 1 built + PASSED
+- Orchestrator (Express + ws on :4100), registry (endpoint→logical-phone grouping
+  by name), heartbeats, per-endpoint health checks, SQLite, WS bus, mock fleet,
+  ws-tap. All acceptance checks green.
+- **Verified live:** 4 endpoints (mock-1 cpu+npu, mock-2, mock-3) → 3 logical
+  phones; mock-1 activeRuntime resolves to `npu` (NPU-first works); killed a
+  standalone mock-solo → flipped `offline` within 10s while others stayed online;
+  ws-tap saw `hello` + `phone_update` w/ live telemetry.
+- **Decisions:** heartbeat targets **phoneId** (not endpointId) — telemetry is a
+  physical-phone property; NPU endpoints (no Termux) never heartbeat, their
+  liveness is health-check-only. `phone_update` payload = full serialized phone
+  (superset), simplest for the UI. Offline is a 2s sweep comparing lastHeartbeat
+  age vs 10s threshold; emits phone_update only on status flip.
+- **Gotcha:** killing a process by CommandLine `-like '*mock-solo*'` over-matches
+  transient shells — for targeted kills prefer port-based lookup. Server+fleet
+  survived; only the intended standalone died.
+- Offline phones remain listed in /api/phones (as `offline`) — intentional; a
+  dropped phone should stay visible for the demo's reliability story.
+- Left orchestrator (bg75udfml) + fleet (bia8tpebv) RUNNING for Phase 2 dev.

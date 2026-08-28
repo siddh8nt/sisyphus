@@ -11,28 +11,27 @@ Tasks:
 - [x] All six docs written (architecture transcribes §3; phases transcribes plan)
 - [x] `git init`
 - [x] `npm install` clean on Windows (better-sqlite3 bumped to ^13 for Node 24 prebuild)
-- [ ] GitHub repo created + pushed
+- [x] GitHub repo created + pushed → https://github.com/siddh8nt/sisyphus (private)
 - [x] README quickstart
 
 **Acceptance:** `npm install` clean on Windows; all six docs exist & complete.
-**Status:** [x] PASSED (install clean, docs complete) · **Passed:** 2026-08-29
-(GitHub push pending user confirmation)
+**Status:** [x] PASSED · **Passed:** 2026-08-29
 
 ---
 
 ## Phase 1 — Core server, registry, mock phones, event bus
 Tasks:
-- [ ] Orchestrator: Express + WS on :4100
-- [ ] Phone registration, heartbeats, health checks (endpoint grouping by name)
-- [ ] SQLite schema + init
-- [ ] WS event bus + `hello` snapshot
-- [ ] Mock fleet (3 phones, ports 11501-3, + 1 mock NPU endpoint 11511)
-- [ ] `scripts/ws-tap.js`
+- [x] Orchestrator: Express + WS on :4100
+- [x] Phone registration, heartbeats, health checks (endpoint grouping by name)
+- [x] SQLite schema + init
+- [x] WS event bus + `hello` snapshot
+- [x] Mock fleet (3 phones, ports 11501-3, + 1 mock NPU endpoint 11511)
+- [x] `scripts/ws-tap.js`
 
 **Acceptance:** `npm start` + `npm run mock-fleet` → `GET /api/phones` shows 3
 online phones w/ telemetry; kill one → offline within 10s; ws-tap sees
-`phone_update`.
-**Status:** [ ] · **Passed:** —
+`phone_update`. → ALL VERIFIED LIVE.
+**Status:** [x] PASSED · **Passed:** 2026-08-29
 
 ---
 
