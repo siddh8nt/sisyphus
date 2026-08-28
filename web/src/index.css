@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0b0f;
+  --surface: #14161d;
+  --surface-2: #1c1f28;
+  --border: #262a35;
+  --text: #e7e9ee;
+  --text-dim: #9aa0ad;
+  --text-faint: #5a606e;
+  --accent: #7c5cff;
+  --accent-2: #22d3ee;
+  --claude: #d97757;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+  --cpu: #9aa0ad;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Live pulse dot */
+.pulse {
+  position: relative;
+}
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  opacity: 0.6;
+  animation: pulse 2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.6; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Streaming caret */
+.caret::after {
+  content: '▌';
+  color: var(--accent-2);
+  animation: blink 1s steps(2) infinite;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* Terminal-ish reasoning feed scrollbars */
+.scroll-y { overflow-y: auto; }
+.scroll-y::-webkit-scrollbar { width: 8px; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* State chip color mapping via data-state */
+.chip { text-transform: uppercase; letter-spacing: 0.04em; }

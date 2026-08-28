@@ -75,16 +75,22 @@ The literal human-driven `/sisyphus` session (Claude reads SKILL.md + integrates
 
 ## Phase 4 — Dashboard
 Tasks:
-- [ ] Configure tab (status, MCP helper, QR, setup one-liner, live phone list)
-- [ ] Orchestration tab (reasoning feed, plan cards, live task cards, scoreboard)
-- [ ] Phone Vitals tab (per-phone cards, sparklines, runtime badges)
-- [ ] History tab (past sessions from SQLite)
-- [ ] `vite build` served at `/`
+- [x] Configure tab (status, MCP helper, QR, setup one-liner, live phone list)
+- [x] Orchestration tab (reasoning feed, plan cards, live task cards, scoreboard)
+- [x] Phone Vitals tab (per-phone cards, sparklines, runtime badges)
+- [x] History tab (past sessions from SQLite, expandable task tables)
+- [x] `vite build` served at `/` (SPA fallback; worker route)
 
 **Acceptance:** Re-run Phase 3 demo watching dashboard on laptop + phone
 viewport: Orchestration streams live; Vitals shows 3 phones moving; History shows
-session; Configure shows QR + copyable command.
-**Status:** [ ] · **Passed:** —
+session; Configure shows QR + copyable command. → VERIFIED via in-app browser
+(a11y tree): live 6-task session streamed reasoning/plan/6 task cards w/ code +
+NPU/CPU badges + scoreboard (246 saved, 4.3s); Vitals 3 phones w/ live
+telemetry+sparkline; History 2 sessions w/ expandable task table; Configure QR +
+setup cmd + live phone list; worker view idle READY; mobile single-column nav; 0
+console errors. (Visual screenshots N/A — pane not displayed; a11y tree
+authoritative.)
+**Status:** [x] PASSED · **Passed:** 2026-08-29
 
 ---
 

@@ -9,6 +9,7 @@ import { attachBus, setSnapshotProvider } from './bus.js';
 import * as registry from './registry.js';
 import { phonesRouter } from './routes/phones.js';
 import { sessionRouter, sessionsReadRouter, devRouter } from './routes/session.js';
+import { configRouter } from './routes/config.js';
 
 export function createApp() {
   const app = express();
@@ -40,6 +41,7 @@ export function createApp() {
   app.use('/api/session', sessionRouter);
   app.use('/api/sessions', sessionsReadRouter);
   app.use('/api/dev', devRouter);
+  app.use('/api/config', configRouter);
 
   // --- Static web (dashboard) — present after Phase 4 build --------------
   if (fs.existsSync(WEB_DIST)) {

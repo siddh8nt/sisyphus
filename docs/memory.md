@@ -115,3 +115,26 @@ why, bugs + fix, gotchas that must not be rediscovered.
   test targets, and a class-named CSS block — so multi-fn utils/tests pass their
   checks (fair stand-in, not gaming hidden checks).
 - Running: orchestrator b01bvhfrp, fleet bbbaecdjk.
+
+## 2026-08-29 — Phase 4 built + PASSED (dashboard)
+- Vite+React+Tailwind dashboard, 4 tabs, dark, mobile-first. Built (vite build,
+  167KB js/52KB gz) → served statically by orchestrator at / with SPA fallback
+  (regex excludes /api and /ws). Path routing (no react-router): /worker/:id →
+  WorkerView, else tabbed dashboard.
+- Store: tiny external store via useSyncExternalStore fed by /ws; reduces
+  hello/phone_update/session_started/reasoning/plan/task_state/token/task_result/
+  session_completed. Keeps a 60-sample telemetry ring buffer per phone for sparklines.
+- New server route GET /api/config/onboarding → {ip, joinUrl, setupCmd, mcpAddCmd,
+  mcpSnippet, qrDataUrl(qrcode.toDataURL)}. lib/netip.js picks LAN IPv4 (prefers
+  192.168.137.x hotspot range). Current LAN detected: 10.66.12.147.
+- **Verified live** in the in-app Browser pane by firing a 6-task session:
+  Orchestration showed reasoning feed (CLAUDE badge), plan split 6-on-phones/1-kept,
+  6 task cards w/ streamed code + NPU/CPU badges + per-task tokens/tok-s, scoreboard
+  246 saved/4.3s; least-loaded queue put 2 rounds across 3 phones (2 NPU tasks on
+  mock-1). Vitals: 3 phones live telemetry + temp/cpu sparkline toggle. History:
+  both sessions, expandable task table w/ runtime badges. Worker view: idle READY +
+  telemetry. Mobile 375px: single-column nav. Zero console errors.
+- **Gotcha:** the in-app Browser pane can't composite screenshots unless it's
+  displayed on the user's screen, and clicks can hang while hidden. read_page
+  (a11y tree) works regardless and is the reliable verification path here.
+- Running: orchestrator bb2gd3uiu, fleet bdkjtn2q1.
