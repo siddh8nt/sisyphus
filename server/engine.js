@@ -40,6 +40,16 @@ export function getActiveSession() {
   return session;
 }
 
+/** Start a session lazily; if one exists but has no prompt yet, fill it in. */
+export function ensureSession(prompt) {
+  if (!session) return startSession(prompt || '');
+  if (prompt && !session.prompt) {
+    session.prompt = prompt;
+    store.updateSessionPrompt(session.sessionId, prompt);
+  }
+  return { sessionId: session.sessionId };
+}
+
 // --- state machine helper ------------------------------------------------
 function setState(task, state, extra = {}) {
   task.state = state;
@@ -80,8 +90,8 @@ function persist(task) {
 }
 
 // --- delegate ------------------------------------------------------------
-export async function delegate({ tasks = [], keep = [] } = {}) {
-  if (!session) startSession('(direct delegate)');
+export async function delegate({ tasks = [], keep = [], prompt } = {}) {
+  ensureSession(prompt);
   session.keep = keep;
 
   const taskObjs = tasks.map((t) => ({
@@ -315,5 +325,6 @@ export function completeSession(summary, filesChanged = []) {
   emit('session_completed', { summary, stats });
   log.ok('session complete', session.sessionId, JSON.stringify(stats));
   const done = { stats, sessionId: session.sessionId };
+  session = null; // clear so the next delegate/log starts a fresh session
   return done;
 }

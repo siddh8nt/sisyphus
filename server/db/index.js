@@ -27,6 +27,7 @@ const stmts = {
     `UPDATE sessions SET completed_at = @completedAt, summary = @summary, stats_json = @statsJson
      WHERE id = @id`
   ),
+  updateSessionPrompt: db.prepare(`UPDATE sessions SET prompt = @prompt WHERE id = @id`),
   getSession: db.prepare(`SELECT * FROM sessions WHERE id = @id`),
   listSessions: db.prepare(`SELECT * FROM sessions ORDER BY started_at DESC LIMIT @limit`),
   upsertTask: db.prepare(
@@ -65,6 +66,9 @@ export const store = {
   },
   insertSession(id, prompt) {
     stmts.insertSession.run({ id, prompt, startedAt: Date.now() });
+  },
+  updateSessionPrompt(id, prompt) {
+    stmts.updateSessionPrompt.run({ id, prompt });
   },
   completeSession(id, summary, stats) {
     stmts.completeSession.run({

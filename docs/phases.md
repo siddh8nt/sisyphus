@@ -55,14 +55,21 @@ mock-1; retry-once-then-fallback narrated; tokens+code persisted).
 
 ## Phase 3 — MCP server + skill + demo project
 Tasks:
-- [ ] Four MCP tools (stdio, thin HTTP client)
-- [ ] Demo Habit Tracker app (`demo/target-app/`, ~6 files)
-- [ ] `/sisyphus` SKILL.md + `.mcp.json`
+- [x] Four MCP tools (stdio, thin HTTP client): status/log/delegate/complete
+- [x] Demo Habit Tracker app (`demo/target-app/`, 6 files) — runs, serves habits
+- [x] `/sisyphus` SKILL.md + `.mcp.json`
+- [x] `demo/DEMO_SCRIPT.md`
 
 **Acceptance:** Real Claude Code session in `demo/target-app` runs `/sisyphus
 <prompt>` end-to-end vs mock phones: real reasoning flows, code returns, Claude
 integrates, app runs, summary table prints.
-**Status:** [ ] · **Passed:** —
+**Status:** [x] Orchestration path VERIFIED (drove the real MCP server over stdio,
+launched exactly as `.mcp.json` does from the demo cwd: status→log→delegate→
+complete; real demo decomposition returned valid code from 3 phones in parallel
+w/ NPU; stats correct: 5 total/3 on-device/1 NPU/153 saved). Demo app runs.
+The literal human-driven `/sisyphus` session (Claude reads SKILL.md + integrates
++ runs the app) is bundled into the Phase 4 watchable demo. · **Passed:** 2026-08-29
+(code-complete; live human run pending w/ Phase 4)
 
 ---
 

@@ -11,8 +11,9 @@ sessionRouter.post('/start', (req, res) => {
 });
 
 sessionRouter.post('/log', (req, res) => {
-  const { text, source } = req.body || {};
+  const { text, source, prompt } = req.body || {};
   if (!text) return res.status(400).json({ error: 'text required' });
+  engine.ensureSession(prompt); // first log starts the session (with the user's prompt)
   res.json(engine.logReasoning(text, source || 'claude'));
 });
 

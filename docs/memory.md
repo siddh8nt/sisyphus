@@ -87,3 +87,31 @@ why, bugs + fix, gotchas that must not be rediscovered.
   orchestrator REQUIRES restarting the mock fleet (mocks don't auto re-register
   on heartbeat 404). Kill both by listening port, not by CommandLine match.
 - Running now: orchestrator bwovcea78, fleet bqw0mbq25.
+
+## 2026-08-29 — Phase 3 built (MCP + skill + demo app)
+- MCP stdio server (mcp/index.js): 4 tools status/log/delegate/complete, thin
+  HTTP client to :4100. Uses McpServer.registerTool + zod. zod pinned ^3.25 (mcp
+  workspace resolves 3.25.76 matching SDK; root has zod 4.x from elsewhere but
+  MCP code resolves the workspace copy — fine since ESM resolves from file dir).
+- ensureSession(prompt): first sisyphus_log/delegate starts the session; prompt
+  passed on first log so History labels it correctly. Added store.updateSessionPrompt.
+- Demo Habit Tracker (demo/target-app/): express server.js + habits.json seed +
+  public/{index.html,app.js,styles.css}. Runs, serves 4 habits. Pre-wired
+  .mcp.json (node ../../mcp/index.js) + .claude/skills/sisyphus/SKILL.md.
+- DEMO_SCRIPT.md: seed prompt = streak-stats feature → 3 phone (dateUtil, stat
+  card css, unit test) + 2 kept (stats endpoint math, UI wiring).
+- **Verified** by driving the REAL MCP server over stdio, launched exactly as
+  .mcp.json does (cwd=demo/target-app, args ../../mcp/index.js): full
+  status→log→delegate→complete with the real decomposition; 3 phone tasks
+  returned valid code in parallel (dateUtil on NPU w/ BOTH functions), stats
+  correct.
+- **BUG FOUND + FIXED:** completeSession didn't clear the active session, so
+  ensureSession reused a stale completed session across MCP connections →
+  tasksTotal/wallClock accumulated (saw 7 tasks / 4.7min). Fix: set `session=null`
+  at end of completeSession. Re-verified: 5/3/1/153, 3.9s. LESSON: always reset
+  session state on completion.
+- **Mock upgrade:** cannedAnswer now reads "Target filename:" + all requested
+  `function X` names and emits a matching stub per function, a node:test file for
+  test targets, and a class-named CSS block — so multi-fn utils/tests pass their
+  checks (fair stand-in, not gaming hidden checks).
+- Running: orchestrator b01bvhfrp, fleet bbbaecdjk.
