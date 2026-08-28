@@ -152,3 +152,20 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - Verified: fired a 9-task session; worker for mock-1 tracked its 3 NPU tasks live
   (streamed code + 21.4 tok/s), telemetry rose while busy; idle READY confirmed
   earlier. Telemetry ingestion (POST /heartbeat) already done Phase 1.
+
+## 2026-08-29 — Phase 6 kit built (phone onboarding, awaiting real phone)
+- phone/setup.sh (CPU runtime, Termux POSIX sh): idempotent — installs
+  ollama+termux-api, wake-lock, starts OLLAMA_HOST=0.0.0.0 ollama serve, pulls
+  qwen2.5-coder:3b, detects Wi-Fi IP (ip route/ip addr/ifconfig fallbacks),
+  registers runtime=cpu, downloads+launches telemetry.sh. Re-run = reconnect.
+- phone/telemetry.sh: POSIX loop, termux-battery-status (% + tempC) + /proc/loadavg
+  + /proc/meminfo, POST heartbeat every 3s, degrades if termux-api ungranted.
+- server/routes/scripts.js serves GET /setup.sh + /telemetry.sh with __ORCH_BASE__
+  replaced by http://<lanIp>:4100 and CRLF stripped. Mounted BEFORE static so the
+  SPA fallback doesn't swallow them.
+- docs/PHONE_SETUP.md: plain-English onboarding (hotspot, firewall rule for 4100,
+  Termux+Termux:API from F-Droid not Play Store, battery perm, paste one-liner).
+- **Verified:** /setup.sh + /telemetry.sh serve templated (real IP 10.66.12.147),
+  pass `bash -n`, LF-only. Real OnePlus onboarding = Phase 6 acceptance, needs the
+  user's phone.
+- Running: orchestrator brkoxgdro, fleet byrhcu1it.

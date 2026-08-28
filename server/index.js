@@ -10,6 +10,7 @@ import * as registry from './registry.js';
 import { phonesRouter } from './routes/phones.js';
 import { sessionRouter, sessionsReadRouter, devRouter } from './routes/session.js';
 import { configRouter } from './routes/config.js';
+import { scriptsRouter } from './routes/scripts.js';
 
 export function createApp() {
   const app = express();
@@ -42,6 +43,10 @@ export function createApp() {
   app.use('/api/sessions', sessionsReadRouter);
   app.use('/api/dev', devRouter);
   app.use('/api/config', configRouter);
+
+  // Phone scripts served at root, templated with the laptop IP. Must come
+  // before the static/SPA handler so they aren't swallowed by the fallback.
+  app.use('/', scriptsRouter);
 
   // --- Static web (dashboard) — present after Phase 4 build --------------
   if (fs.existsSync(WEB_DIST)) {
