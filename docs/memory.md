@@ -234,3 +234,22 @@ why, bugs + fix, gotchas that must not be rediscovered.
   adb.exe. Verified the resolver finds it. No system change needed.
 - Pre-flight remaining before iQOO day: build the NPU bundle (Docker) + download
   the Q4_0 model. Docker present (29.5.2).
+
+## 2026-08-29 — NexaSDK researched: llama.cpp stays primary (decision confirmed)
+- NexaSDK is now Qualcomm-official = **GenieX** (github.com/qualcomm/nexa-sdk,
+  "community version of Qualcomm GENIE"). Nov-2025 Qualcomm "NexaSDK for Android"
+  blog exists.
+- Under the hood, GenieX's GGUF-on-NPU path **IS llama.cpp ggml-hexagon** (same
+  HTP kernels). It adds a QNN / Qualcomm AI Engine Direct path (AI Hub pre-compiled
+  per-chipset bundles, NPU-only, "highest NPU perf").
+- **DECISIVE:** README platform table shows the OpenAI-compatible `geniex serve`
+  for **Windows ARM64 / Linux / Docker only**. On **Android** the ONLY interface
+  is the **Kotlin/Java Android SDK** (embed in an app; sample = Android Studio app
+  in qualcomm/ai-hub-apps). No adb-runnable server on Android.
+- Sisyphus needs a standalone OpenAI *server* on the phone. llama.cpp llama-server
+  gives that via adb with no app. NexaSDK on Android would require building +
+  installing a custom Android app that embeds GenieX and serves HTTP — MORE work.
+- Also confirms: Q4_0 best for Hexagon; 8 Elite Gen 5 supported.
+- **Decision:** keep llama.cpp Hexagon (llama-server) as PRIMARY. NexaSDK/GenieX =
+  reference + last-resort Plan B (its QNN/AI-Hub path = perf Plan C, only if we
+  ship an on-phone app). Recorded in docs/NPU_SETUP.md.

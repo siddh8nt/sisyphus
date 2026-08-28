@@ -109,12 +109,33 @@ the task completes on CPU with the switch narrated.
 - `GGML_HEXAGON_VERBOSE=1` (op logging), `GGML_HEXAGON_PROFILE=1|2` (perf),
   `GGML_HEXAGON_OPFILTER=<regex>` (disable ops, e.g. `FLASH_ATTN_EXT`)
 
+## Why llama.cpp is primary, not NexaSDK (researched 2026-08-29)
+NexaSDK is now Qualcomm's official **GenieX** (`github.com/qualcomm/nexa-sdk`,
+"community version of Qualcomm GENIE"). Key facts from its README:
+- Its **GGUF-on-NPU path IS llama.cpp `ggml-hexagon`** (GGML HTP kernels), same
+  engine we already use. It also offers a QNN / Qualcomm AI Engine Direct path
+  (pre-compiled Qualcomm AI Hub bundles) for max NPU perf.
+- **Platform table:** the OpenAI-compatible `geniex serve` is listed for
+  **Windows ARM64 / Linux / Docker only**. On **Android** the only interface is
+  the **Kotlin/Java Android SDK** (embed in an app; sample is an Android Studio
+  app in qualcomm/ai-hub-apps). **There is no adb-runnable server on Android.**
+- Q4_0 is confirmed as the best-supported Hexagon precision (matches our plan).
+
+**Conclusion:** Sisyphus needs a standalone OpenAI *server* on the phone reachable
+over the hotspot. llama.cpp's `llama-server` gives exactly that via adb, no app.
+NexaSDK on Android would require **building + installing a custom Android app**
+that embeds GenieX and exposes an HTTP endpoint — strictly more work, not less.
+So llama.cpp Hexagon is the correct primary; NexaSDK/GenieX is a reference and a
+last-resort Plan B (and its AI Hub/QNN path is a possible perf Plan C, but only if
+we ever ship an on-phone app).
+
 ## Time-box (from the build plan)
 Two focused sessions on this Hexagon path. If it won't run on our device →
-**Plan B: NexaSDK** Qualcomm-NPU runtime with its OpenAI-compatible server,
-registered the same way (`runtime:"npu"`). Two sessions on Plan B max; then ship
-**CPU-only** and describe NPU honestly as "supported architecture, device
-bring-up pending." The dual-runtime design makes that a graceful degrade.
+Plan B, then ship **CPU-only** and describe NPU honestly as "supported
+architecture, device bring-up pending." The dual-runtime design makes that a
+graceful degrade. Plan B options (both need more work than llama.cpp on Android):
+NexaSDK/GenieX embedded in a minimal Android app exposing an OpenAI endpoint, or
+its QNN/AI-Hub bundle path for max NPU perf.
 
 ## Troubleshooting
 - `adb devices` empty → USB debugging off, cable is charge-only, or RSA prompt
