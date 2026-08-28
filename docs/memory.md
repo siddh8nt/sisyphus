@@ -61,3 +61,29 @@ why, bugs + fix, gotchas that must not be rediscovered.
 - Offline phones remain listed in /api/phones (as `offline`) — intentional; a
   dropped phone should stay visible for the demo's reliability story.
 - Left orchestrator (bg75udfml) + fleet (bia8tpebv) RUNNING for Phase 2 dev.
+
+## 2026-08-29 — Phase 2 built + PASSED
+- Task engine: worker-client (Ollama NDJSON + OpenAI SSE adapters, line-buffered
+  stream reader, 120s AbortController timeout), validate.js (fence extract, prose
+  reject, node --check / JSON.parse / brace+angle heuristics, checks regexes),
+  engine.js (session, least-loaded parallel dispatch, lifecycle state machine,
+  one retry with validator error appended, Claude fallback, stats→SQLite),
+  session/dev routes.
+- **Verified live vs mock fleet:** 3 tasks all hit `generating` at the SAME ts on
+  3 phones (2.1s wall vs ~5s serial) → real concurrency. formatDate ran on
+  mock-1 NPU endpoint (NPU-first). Impossible-check task: generating→validating→
+  fail→"Retrying once"→dispatched→generating→validating→fail→"handing back to
+  Claude"→failed→fallback_claude, task_result fallback=true. SQLite persisted
+  state/status/runtime/tokens_in/out/tok_per_sec/code for all tasks.
+- **Gotchas:**
+  * Don't hand-write JSON payloads in bash heredocs — backslash escapes (\.card)
+    become invalid JSON escapes and body-parser 400s with an HTML error page that
+    looks like a missing route. Use a Node test script (fetch + JSON.stringify).
+  * Node fetch `response.body` is async-iterable in Node 24 — for-await works for
+    stream parsing; buffer partial lines across chunks.
+  * dev/delegate starts a fresh session each call (by design) — so session-level
+    stats reflect only that call's tasks.
+- Restart discipline: server holds the registry in memory, so restarting the
+  orchestrator REQUIRES restarting the mock fleet (mocks don't auto re-register
+  on heartbeat 404). Kill both by listening port, not by CommandLine match.
+- Running now: orchestrator bwovcea78, fleet bqw0mbq25.

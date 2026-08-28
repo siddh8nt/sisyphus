@@ -37,17 +37,19 @@ online phones w/ telemetry; kill one → offline within 10s; ws-tap sees
 
 ## Phase 2 — Task engine
 Tasks:
-- [ ] Worker client: Ollama + OpenAI adapters, streaming, 120s timeout
-- [ ] `server/prompts/worker.md`
-- [ ] Validation pipeline (extract/reject/syntax/checks), retry, fallback
-- [ ] Parallel dispatch, per-phone FIFO queue, least-loaded
-- [ ] Stats accounting → SQLite
-- [ ] Dev route `POST /api/dev/delegate`
+- [x] Worker client: Ollama + OpenAI adapters, streaming, 120s timeout
+- [x] `server/prompts/worker.md` + prompts/build.js
+- [x] Validation pipeline (extract/reject/syntax/checks), retry, fallback
+- [x] Parallel dispatch, per-phone FIFO queue, least-loaded
+- [x] Stats accounting → SQLite
+- [x] Dev route `POST /api/dev/delegate` (+ /api/session/* + /api/sessions read)
 
 **Acceptance:** 3 tasks via dev route fan out to 3 mocks concurrently
 (overlapping `generating` in ws-tap), all complete, token stats in SQLite; a
-task with failing `checks` retries once then falls back.
-**Status:** [ ] · **Passed:** —
+task with failing `checks` retries once then falls back. → ALL VERIFIED (3 tasks
+`generating` at same ts on 3 phones, 2.1s wall vs ~5s serial; NPU preferred on
+mock-1; retry-once-then-fallback narrated; tokens+code persisted).
+**Status:** [x] PASSED · **Passed:** 2026-08-29
 
 ---
 

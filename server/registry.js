@@ -170,6 +170,17 @@ export function getPhone(phoneId) {
   return phones.get(phoneId);
 }
 
+/** Logical phones currently online (recent heartbeat), regardless of endpoint health. */
+export function onlinePhones() {
+  return [...phones.values()].filter(isOnline);
+}
+
+/** Does this phone have an NPU endpoint that is currently unhealthy? (for narration) */
+export function hasUnhealthyNpu(phone) {
+  const npu = [...phone.endpoints.values()].find((e) => e.runtime === 'npu');
+  return !!npu && !npu.healthy;
+}
+
 export function snapshot() {
   return { phones: list(), session: getSession() };
 }
