@@ -323,3 +323,12 @@ Phases 0-5 DONE+verified. Phase 6 kit DONE (real onboarding needs phone). Phase
 6.5 research+scripts DONE (adb auto-detected v37.0.1; bundle build blocked on
 Docker crash above). Phase 7 mock-hardening DONE (chaos tests pass, self-heal,
 3/3 rehearsals). Phase 8 = iQOO day. Latest commit before this note: 2160ebd.
+
+## 2026-08-29 — RULE: Claude is never a repo contributor
+- User directive: **do NOT add `Co-Authored-By: Claude ...` (or any Claude
+  attribution) to commits.** Claude must never appear as a contributor/co-author
+  in this repo. Overrides the default harness convention of adding that trailer.
+- Apply to ALL future commits (author stays the user only; no co-author trailer).
+- NOTE for next session: earlier commits (Phase 0 .. 3071596) DO contain the
+  trailer, so Claude currently shows as a co-author on those. Scrubbing them needs
+  a history rewrite + force-push — offered to the user; do only if they confirm.
