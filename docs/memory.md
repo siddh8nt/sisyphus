@@ -138,3 +138,17 @@ why, bugs + fix, gotchas that must not be rediscovered.
   displayed on the user's screen, and clicks can hang while hidden. read_page
   (a11y tree) works regardless and is the reliable verification path here.
 - Running: orchestrator bb2gd3uiu, fleet bdkjtn2q1.
+
+## 2026-08-29 — Phase 5 built + PASSED (worker view)
+- WorkerView (built in Phase 4, verified in Phase 5): picks the phone's active
+  task (generating/dispatched/validating/retrying) else last task; big name +
+  runtime badge, telemetry strip (battery/temp/cpu/mem), streaming monospace pane
+  (cyan caret while generating), live token counter + tok/s, idle "READY".
+- PWA: added web/public/manifest.webmanifest + apple-mobile-web-app meta + manifest
+  link. Vite copies public/ to dist root; served at /manifest.webmanifest.
+- Rebuild note: express.static serves dist from disk per-request, so a `vite build`
+  is picked up WITHOUT restarting the orchestrator. Only server-code changes need
+  a restart (and thus a fleet restart too).
+- Verified: fired a 9-task session; worker for mock-1 tracked its 3 NPU tasks live
+  (streamed code + 21.4 tok/s), telemetry rose while busy; idle READY confirmed
+  earlier. Telemetry ingestion (POST /heartbeat) already done Phase 1.

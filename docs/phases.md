@@ -96,13 +96,16 @@ authoritative.)
 
 ## Phase 5 — Worker view + telemetry ingestion
 Tasks:
-- [ ] `/worker/:id` streaming output + telemetry + token counter
-- [ ] Idle "READY" state; PWA meta/manifest
-- [ ] Legible at 1.5m
+- [x] `/worker/:id` streaming output + telemetry + token counter + tok/s
+- [x] Idle "READY" state; PWA manifest + apple-mobile-web-app meta
+- [x] Legible at 1.5m (name clamp 3xl–5xl, telemetry 2xl–4xl)
+- [x] Telemetry ingestion (heartbeat endpoint — done Phase 1)
 
 **Acceptance:** worker view for a mock phone streams live during a session, shows
-telemetry, idle looks good, legible at 1.5m in mobile viewport.
-**Status:** [ ] · **Passed:** —
+telemetry, idle looks good, legible at 1.5m in mobile viewport. → VERIFIED:
+mock-1 worker tracked its 3 queued tasks live (streamed code + tok/s), telemetry
+moved (temp rose while busy), idle READY confirmed pre-session, big type.
+**Status:** [x] PASSED · **Passed:** 2026-08-29
 
 ---
 

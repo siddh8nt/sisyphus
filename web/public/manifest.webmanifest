@@ -1,0 +1,10 @@
+{
+  "name": "Sisyphus Worker",
+  "short_name": "Sisyphus",
+  "description": "Mobile edge-compute worker for coding agents",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0b0f",
+  "theme_color": "#0a0b0f",
+  "start_url": "/"
+}
