@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build output
+web/dist/
+dist/
+
+# SQLite databases
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+server/data/
+
+# Model binaries / large artifacts
+*.gguf
+*.bin
+phone/npu/bundle/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Vite
+web/.vite/

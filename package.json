@@ -1,0 +1,22 @@
+{
+  "name": "sisyphus",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sisyphus — Mobile Edge Compute for Coding Agents",
+  "workspaces": [
+    "server",
+    "mcp",
+    "web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server/scripts/start.js",
+    "build": "npm --workspace web run build",
+    "mock-fleet": "node server/mock/fleet.js",
+    "ws-tap": "node scripts/ws-tap.js",
+    "dev": "node server/index.js"
+  }
+}

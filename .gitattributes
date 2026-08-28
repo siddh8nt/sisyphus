@@ -1,0 +1,15 @@
+# Default: let git normalize line endings
+* text=auto
+
+# Phone scripts MUST be LF — they run under Termux (POSIX sh). CRLF breaks them.
+*.sh text eol=lf
+phone/**/*.sh text eol=lf
+
+# Windows scripts stay CRLF
+*.ps1 text eol=crlf
+
+# Binaries
+*.gguf binary
+*.png binary
+*.jpg binary
+*.ico binary
