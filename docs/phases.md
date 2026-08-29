@@ -3,14 +3,14 @@
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done (checks passed). Record the
 date each phase passes.
 
-> **STATUS @ 2026-08-29 session end.** Phases 0-5 DONE+verified. Phase 6 kit DONE
-> (real onboarding needs a phone). Phase 6.5 research+scripts DONE; **bundle build
-> BLOCKED on a Docker Desktop crash** (see morning-start in memory.md). Phase 7
-> mock-hardening DONE. NEXT: fix Docker -> `build-npu.ps1` -> download Q4_0 model.
-> Then iQOO onboarding when phones arrive. Then **Phase 9** (phone-first native
-> app) for hackathon rubric points. Nothing is running (start with `npm start` +
-> `npm run mock-fleet`). Full context + decisions: **read the last entry of
-> memory.md first.**
+> **STATUS: AT THE VENUE, LIVE (2026-08-29).** iQOO phones in hand; hub
+> orchestrator running. Core (Phases 0-5) done+verified on mocks; Phase 6 kit,
+> 6.5 scripts, 7 mock-hardening done. **NPU bundle build still pending** (Docker
+> crashed; retry). See docs/VENUE_RUNBOOK.md for team onboarding.
+> **IMMEDIATE:** (1) hotspot ON + firewall rule (admin) -> (2) CPU-onboard all 3
+> iQOOs (unique --name; ~2GB pull each) -> (3) real /sisyphus run -> (4) NPU
+> bring-up (timeboxed) -> (5) Phase 9 native app only if time. Full plan + venue
+> state: **read the last two memory.md entries first.**
 
 ---
 

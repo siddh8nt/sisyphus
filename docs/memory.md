@@ -332,3 +332,38 @@ Docker crash above). Phase 7 mock-hardening DONE (chaos tests pass, self-heal,
 - NOTE for next session: earlier commits (Phase 0 .. 3071596) DO contain the
   trailer, so Claude currently shows as a co-author on those. Scrubbing them needs
   a history rewrite + force-push — offered to the user; do only if they confirm.
+
+## 2026-08-29 — AT THE VENUE / LIVE (iQOO phones in hand)
+STATE: We are at the hackathon venue with the iQOO 15 phones. Orchestrator
+started on the hub laptop. Clock running.
+- **Networking:** hotspot was OFF (only Ethernet 10.124.180.123 + venue Wi-Fi
+  10.231.240.77). PLAN: turn on Windows Mobile Hotspot (share from Ethernet) ->
+  phones join it -> hub reachable at 192.168.137.1:4100. Firewall rule for 4100
+  needs ADMIN (not yet added): `netsh advfirewall firewall add rule
+  name="Sisyphus" dir=in action=allow protocol=TCP localport=4100`.
+- **Onboarding IP:** comes from Configure tab AFTER hotspot is on (will be
+  192.168.137.1, NOT the Ethernet 10.124.x that netip picked with hotspot off).
+- **Team sync:** wrote docs/VENUE_RUNBOOK.md (self-serve). Model: ONE hub laptop
+  runs `npm start`+hotspot; teammates onboard phones in parallel against the hub
+  IP with unique `--name iqoo-N`. Owner adds collaborators
+  (`gh repo add-collaborator siddh8nt/sisyphus <user>`).
+
+### LOCKED PRIORITY ORDER AT VENUE (floor-first, then climb)
+1. **CPU fleet online on all 3 iQOOs FIRST** (proven, fast; the ~2GB model pull
+   per phone is the only real wait -> start it, parallelize everything else).
+   This is the guaranteed working demo + real on-device LLM (core rubric req).
+2. **While models pull (parallel):** install Office Kit (10% telemetry + demo
+   runs on phone); kick off Docker fix + NPU bundle build on the hub.
+3. **Real `/sisyphus` run** with 3 real phones -> validates core on hardware
+   (first time off mocks) + rehearsal.
+4. **NPU bring-up** on the iQOOs (headline; technical depth). Timeboxed; CPU is
+   the safety net. deploy-npu.ps1 -Name iqoo-N.
+5. **Native app (Phase 9)** ONLY if 1-4 solid and time remains (Tier 2 first,
+   walking skeleton). Highest risk/lift; do not start here.
+- Rationale: app is high-variance; steps 1-3 give a compelling rubric-aligned
+  demo you can always fall back to. NPU + app are escalating upside.
+
+### DONE THIS SESSION (venue)
+- Orchestrator running (bg task bl73zguda). Firewall attempt = needs admin.
+- VENUE_RUNBOOK.md + README pointer committed/pushed.
+- NPU bundle build STILL PENDING (Docker crashed earlier; retry per morning-start).
