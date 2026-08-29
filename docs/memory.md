@@ -367,3 +367,42 @@ started on the hub laptop. Clock running.
 - Orchestrator running (bg task bl73zguda). Firewall attempt = needs admin.
 - VENUE_RUNBOOK.md + README pointer committed/pushed.
 - NPU bundle build STILL PENDING (Docker crashed earlier; retry per morning-start).
+
+## 2026-08-29 — Teammate machine setup: Node 24 + `npm install --ignore-scripts`
+Bringing up a second dev laptop (akshat's) from a fresh clone hit two blockers.
+Both are environment-only — no repo code changed. Record so the next teammate
+doesn't lose 20 minutes.
+
+1. **`npm install` fails with `gyp ERR! Could not find any Visual Studio
+   installation`.** `better-sqlite3@13` sets `"gypfile": false` and ships
+   prebuilt binaries in `prebuilds/<platform>-<arch>.node`, but npm 10/11 still
+   defaults to `node-gyp rebuild` because a `binding.gyp` is present in the
+   tarball. **Fix: `npm install --ignore-scripts`** — the shipped prebuild is
+   then used and everything works (esbuild/vite are fine without their install
+   script too; `fsevents` is macOS-only). Installing VS Build Tools also works
+   but is a multi-GB download you don't need.
+2. **Node 22 segfaults.** On Node v22.13.0 the win32-x64 prebuild crashes with an
+   access violation (0xC0000005) the moment you construct a `Database`. `require`
+   succeeds; `new Database(':memory:')` kills the process. **Node 24 LTS is the
+   supported runtime** (matches the hub laptop — Phase 0 bumped better-sqlite3 to
+   ^13 for the Node 24 prebuild). `winget install --id OpenJS.NodeJS.LTS` →
+   v24.19.0 / npm 11.17.0. Verified fine there.
+   - NOTE: root `package.json` still says `"engines": {"node": ">=20"}`, which is
+     wrong — better-sqlite3@13 itself declares `>=22`, and 22 crashes in practice.
+     Should be `>=24`. Left unchanged pending the hub owner's call (shared file).
+   - `docs/VENUE_RUNBOOK.md` / `README.md` said "Node >= 20"; corrected to 24.
+
+**Verified end-to-end on the new machine** (Node 24.19.0, npm 11.17.0, no VS):
+orchestrator on :4100, dashboard/worker/setup.sh all 200, 3 mock phones online
+(mock-1 with the NPU endpoint), and a full MCP-over-stdio run launched exactly as
+`demo/target-app/.mcp.json` does — `sisyphus_status` → `sisyphus_log` →
+`sisyphus_delegate` → `sisyphus_complete`. Result matches the documented mock
+baseline: **3 on-device / 1 NPU / 153 cloud tokens saved / ~3.8s**.
+
+**Gotcha found while testing (not a bug, but worth knowing):** the mock worker
+derives a CSS class name from the spec via
+`/\.([a-zA-Z][\w-]*)\s*(?:CSS|component|\{)/`. Writing the spec as
+``a `.stats-card` component`` (backticked) defeats that regex, it falls through
+to matching `.css` from the filename, and the task fails its `checks` → retry →
+Claude fallback. Write CSS specs unbackticked (`a .stats-card component`). Real
+phones don't care; this only shapes mock rehearsal numbers.

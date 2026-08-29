@@ -9,7 +9,11 @@ registers to the one hub laptop and shows up on its dashboard.
 - **Phone wranglers (anyone, in parallel):** do Part B, once per phone.
 - Advanced/optional: Part C (NPU), Part D (Office Kit), Part E (run the demo).
 
-Prereqs to clone the repo: **Node ≥ 20**. `git clone <repo> && cd sisyphus && npm install`.
+Prereqs to clone the repo: **Node ≥ 24 LTS** (Node 22 segfaults in
+`better-sqlite3`; `winget install --id OpenJS.NodeJS.LTS`).
+`git clone <repo> && cd sisyphus && npm install --ignore-scripts`
+— the `--ignore-scripts` flag is required, otherwise npm tries to compile
+`better-sqlite3` from source and fails without Visual Studio Build Tools.
 
 ---
 
@@ -95,7 +99,7 @@ context via the committed docs.
 
 **Setup (once):**
 1. Accept the GitHub invite, then `git clone https://github.com/siddh8nt/sisyphus`
-   → `cd sisyphus` → `npm install` (needs Node ≥ 20).
+   → `cd sisyphus` → `npm install --ignore-scripts` (needs Node ≥ 24 LTS).
 
 **Start a Claude Code session and tell it, verbatim:**
 > Read `docs/memory.md` (start with the LAST 2-3 entries — that's the current

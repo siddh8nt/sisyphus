@@ -16,13 +16,18 @@ demo never breaks.
 
 ## Quickstart (no phones required — < 5 min)
 
-Requires **Node ≥ 20**. Works on Windows and Mac.
+Requires **Node ≥ 24 LTS** (Node 22 segfaults in `better-sqlite3`). Works on
+Windows and Mac.
 
 ```bash
 git clone <repo-url>
 cd sisyphus
-npm install
+npm install --ignore-scripts
 ```
+
+`--ignore-scripts` is required: `better-sqlite3` ships prebuilt binaries but npm
+still tries to compile it, which needs Visual Studio Build Tools. See the
+2026-08-29 setup entry in `docs/memory.md`.
 
 Start the orchestrator (terminal 1):
 
