@@ -8,7 +8,7 @@ function fmtDate(ms) {
 }
 
 function SessionRow({ session }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [detail, setDetail] = useState(null);
   useEffect(() => {
     if (open && !detail) {
@@ -22,9 +22,11 @@ function SessionRow({ session }) {
   return (
     <div className="border-b border-border-soft last:border-b-0">
       <button className="w-full text-left px-3 py-3" onClick={() => setOpen((o) => !o)}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0 flex items-baseline gap-3">
-            <span className="text-[12px] tracking-[0.04em] truncate">{session.prompt || '(unnamed session)'}</span>
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="min-w-0 flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-3">
+            <span className="text-[12px] tracking-[0.04em] break-words sm:truncate">
+              {session.prompt || '(unnamed session)'}
+            </span>
             <span className="text-[10px] text-faint shrink-0">
               {fmtDate(session.started_at)}
               {session.completed_at ? '' : ' · running'}
@@ -47,16 +49,16 @@ function SessionRow({ session }) {
       </button>
       {open && detail && (
         <div className="border-t border-border-soft bg-surface">
-          <div className="grid grid-cols-[2fr_1fr_100px_100px] px-3 py-1.5 text-[9px] tracking-[0.14em] uppercase text-faint border-b border-border-soft">
+          <div className="grid grid-cols-[2fr_1fr_64px_64px] gap-x-2 px-3 py-1.5 text-[9px] tracking-[0.14em] uppercase text-faint border-b border-border-soft">
             <span>Task</span>
             <span>Who</span>
             <span className="text-right">Tokens</span>
             <span className="text-right">Result</span>
           </div>
           {detail.tasks.map((t) => (
-            <div key={t.id} className="grid grid-cols-[2fr_1fr_100px_100px] px-3 py-1.5 text-[11px] border-b border-border-soft last:border-b-0">
-              <span>{t.title}</span>
-              <span className="inline-flex items-baseline gap-1.5">
+            <div key={t.id} className="grid grid-cols-[2fr_1fr_64px_64px] gap-x-2 px-3 py-1.5 text-[11px] border-b border-border-soft last:border-b-0">
+              <span className="min-w-0 break-words">{t.title}</span>
+              <span className="min-w-0 inline-flex flex-wrap items-baseline gap-1.5">
                 {t.fallback ? 'Claude' : t.phone_name || '—'}
                 {!t.fallback && <RuntimeBadge runtime={t.runtime} />}
               </span>

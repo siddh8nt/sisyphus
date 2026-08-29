@@ -39,12 +39,14 @@ export default function App() {
             {s.connected ? 'Live' : 'Reconnecting'} · {String(online).padStart(2, '0')} phone{online === 1 ? '' : 's'}
           </div>
         </div>
-        <nav className="flex border-t border-border overflow-x-auto">
+        {/* 2x2 grid on mobile so every tab is visible without horizontal scroll;
+            single flex row from sm up. */}
+        <nav className="grid grid-cols-2 sm:flex border-t border-border">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className="flex-1 px-4 py-2.5 text-[11px] tracking-[0.12em] whitespace-nowrap border-r border-border transition-colors"
+              className="flex-1 px-4 py-2.5 text-[11px] tracking-[0.12em] whitespace-nowrap border-r border-b sm:border-b-0 border-border transition-colors"
               style={
                 tab === key
                   ? { background: 'var(--paper)', color: 'var(--ink)' }
