@@ -18,59 +18,56 @@ export default function WorkerView({ phoneId }) {
   }, [output]);
 
   return (
-    <div className="min-h-full flex flex-col p-5 md:p-8">
-      <div className="flex items-center justify-between">
+    <div className="min-h-full flex flex-col">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-3">
           <StatusDot online={online} />
-          <span className="text-3xl md:text-5xl font-bold tracking-tight">{phone?.name || phoneId}</span>
+          <span className="pixel text-[30px] md:text-[40px]">{phone?.name || phoneId}</span>
           <RuntimeBadge runtime={phone?.activeRuntime} />
         </div>
-        <span className="text-lg font-bold" style={{ color: 'var(--accent)' }}>SISYPHUS</span>
+        <span className="pixel text-[13px] text-faint">SISYPHUS</span>
       </div>
 
       {/* Telemetry strip */}
-      <div className="flex gap-6 md:gap-10 mt-4 text-dim tabular">
+      <div className="flex border-b border-border tabular">
         <Big label="Battery" value={t.battery != null ? t.battery + '%' : '—'} />
         <Big label="Temp" value={t.batteryTempC != null ? t.batteryTempC + '°C' : '—'} />
         <Big label="CPU" value={t.cpuLoad != null ? t.cpuLoad : '—'} />
-        <Big label="Mem" value={t.memUsedMB ? (t.memUsedMB / 1024).toFixed(1) + 'GB' : '—'} />
+        <Big label="Mem" value={t.memUsedMB ? (t.memUsedMB / 1024).toFixed(1) + 'GB' : '—'} last />
       </div>
 
       {active ? (
-        <div className="flex-1 flex flex-col mt-6 min-h-0">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xl md:text-2xl font-semibold truncate">{active.title}</span>
+        <div className="flex-1 flex flex-col p-5 gap-2.5 min-h-0">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[15px] tracking-[0.06em] truncate">{active.title}</span>
             <StateChip state={active.state} />
           </div>
-          <div className="text-sm font-mono text-dim mb-2">{active.file}</div>
+          <div className="text-[10px] text-faint">{active.file}</div>
           <pre
             ref={ref}
-            className={`scroll-y flex-1 bg-surface border border-border rounded-2xl p-4 font-mono text-base md:text-lg leading-relaxed whitespace-pre-wrap break-words ${streaming ? 'caret' : ''}`}
-            style={{ borderColor: streaming ? 'var(--accent-2)' : 'var(--border)' }}
+            className={`scroll-y flex-1 dotfield bg-surface border border-border p-3.5 text-[12px] md:text-sm leading-[1.7] whitespace-pre-wrap break-words text-dim ${streaming ? 'caret' : ''}`}
           >
             {output || '…'}
           </pre>
-          <div className="flex items-center gap-8 mt-4 text-2xl md:text-3xl font-bold tabular">
+          <div className="flex items-baseline gap-7 border-t border-border-soft pt-3 tabular">
             <span>
-              {active.result ? active.tokensOut : (output ? output.split(/\s+/).length : 0)}
-              <span className="text-sm text-dim ml-2 font-normal">tokens</span>
+              <span className="pixel text-[30px]">{active.result ? active.tokensOut : output ? output.split(/\s+/).length : 0}</span>
+              <span className="text-[9px] tracking-[0.14em] uppercase text-faint ml-2">tokens</span>
             </span>
             {active.result && !active.fallback && (
-              <span style={{ color: 'var(--accent-2)' }}>
-                {active.tokPerSec}
-                <span className="text-sm text-dim ml-2 font-normal">tok/s</span>
+              <span>
+                <span className="pixel text-[30px]" style={{ color: 'var(--signal)' }}>{active.tokPerSec}</span>
+                <span className="text-[9px] tracking-[0.14em] uppercase text-faint ml-2">tok/s</span>
               </span>
             )}
           </div>
         </div>
       ) : (
-        <div className="flex-1 grid place-items-center">
-          <div className="text-center">
-            <div className="inline-block mb-4" style={{ color: 'var(--ok)' }}>
-              <StatusDot online={online} className="!w-4 !h-4" />
-            </div>
-            <div className="text-3xl md:text-5xl font-bold text-dim">READY</div>
-            <div className="text-lg text-faint mt-2">waiting for tasks</div>
+        <div className="flex-1 grid place-items-center dotfield">
+          <div className="text-center flex flex-col items-center gap-3.5">
+            <span className="inline-block w-3 h-3" style={{ background: online ? 'var(--signal)' : 'var(--border)' }} />
+            <div className="pixel text-[44px]">(READY)</div>
+            <div className="text-[10px] tracking-[0.18em] uppercase text-faint">Waiting for tasks</div>
           </div>
         </div>
       )}
@@ -78,11 +75,11 @@ export default function WorkerView({ phoneId }) {
   );
 }
 
-function Big({ label, value }) {
+function Big({ label, value, last }) {
   return (
-    <div className="flex flex-col">
-      <span className="text-xs uppercase tracking-wide text-faint">{label}</span>
-      <span className="text-2xl md:text-4xl font-bold text-text">{value}</span>
+    <div className={`flex-1 flex flex-col py-3 pl-5 ${last ? '' : 'border-r border-border-soft'}`}>
+      <span className="text-[8px] tracking-[0.14em] uppercase text-faint">{label}</span>
+      <span className="pixel text-[22px] md:text-[26px] text-text">{value}</span>
     </div>
   );
 }

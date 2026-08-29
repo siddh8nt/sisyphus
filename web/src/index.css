@@ -3,20 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0a0b0f;
-  --surface: #14161d;
-  --surface-2: #1c1f28;
-  --border: #262a35;
-  --text: #e7e9ee;
-  --text-dim: #9aa0ad;
-  --text-faint: #5a606e;
-  --accent: #7c5cff;
-  --accent-2: #22d3ee;
-  --claude: #d97757;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --err: #f87171;
-  --cpu: #9aa0ad;
+  --bg: #0e0e0e;
+  --surface: #111111;
+  --surface-2: #1a1a1a;
+  --paper: #e9e6df;
+  --paper-border: #c9c6bd;
+  --ink: #111111;
+  --border: #3a3a36;
+  --border-soft: #23231f;
+  --text: #eae7e0;
+  --text-dim: #b8b5ad;
+  --text-faint: #8a8880;
+  --signal: #3ddc84;
+  /* legacy aliases (monochrome + single signal) so nothing breaks */
+  --accent: #eae7e0;
+  --accent-2: #3ddc84;
+  --claude: #b8b5ad;
+  --ok: #3ddc84;
+  --warn: #b8b5ad;
+  --err: #8a8880;
+  --cpu: #8a8880;
 }
 
 html,
@@ -28,44 +34,84 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Live pulse dot */
+/* Pixel display face — wordmark, big numerals, headlines */
+.pixel {
+  font-family: 'Silkscreen', monospace;
+}
+
+/* Micro-label: tiny caps, wide tracking */
+.micro {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* Hairline module */
+.module {
+  border: 1px solid var(--border);
+}
+
+/* Dot fields */
+.dotfield {
+  background-image: radial-gradient(#1e1e1b 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.dotfield-paper {
+  background-image: radial-gradient(#c9c6bd 1px, transparent 1px);
+  background-size: 11px 11px;
+  background-position: 0 100%;
+}
+
+/* Live square indicator */
+.square-live {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--signal);
+}
+.square-off {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--text-faint);
+}
 .pulse {
-  position: relative;
+  animation: blink 1.4s steps(2) infinite;
 }
-.pulse::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  border-radius: 999px;
-  border: 2px solid currentColor;
-  opacity: 0.6;
-  animation: pulse 2s ease-out infinite;
-}
-@keyframes pulse {
-  0% { transform: scale(0.8); opacity: 0.6; }
-  100% { transform: scale(1.8); opacity: 0; }
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
 }
 
 /* Streaming caret */
 .caret::after {
   content: '▌';
-  color: var(--accent-2);
+  color: var(--signal);
   animation: blink 1s steps(2) infinite;
-}
-@keyframes blink {
-  50% { opacity: 0; }
 }
 
 /* Terminal-ish reasoning feed scrollbars */
-.scroll-y { overflow-y: auto; }
-.scroll-y::-webkit-scrollbar { width: 8px; }
-.scroll-y::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+.scroll-y {
+  overflow-y: auto;
+}
+.scroll-y::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-y::-webkit-scrollbar-thumb {
+  background: var(--border);
+}
 
-.tabular { font-variant-numeric: tabular-nums; }
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
 
-/* State chip color mapping via data-state */
-.chip { text-transform: uppercase; letter-spacing: 0.04em; }
+.chip {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}

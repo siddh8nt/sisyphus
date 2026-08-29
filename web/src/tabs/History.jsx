@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../store.js';
-import { Card, RuntimeBadge } from '../components/ui.jsx';
+import { RuntimeBadge } from '../components/ui.jsx';
 
 function fmtDate(ms) {
   if (!ms) return '';
@@ -20,57 +20,55 @@ function SessionRow({ session }) {
   }, [open]);
   const st = session.stats;
   return (
-    <Card>
-      <button className="w-full text-left" onClick={() => setOpen((o) => !o)}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="font-medium truncate">{session.prompt || '(unnamed session)'}</div>
-            <div className="text-xs text-faint">{fmtDate(session.started_at)}{session.completed_at ? '' : ' · running'}</div>
+    <div className="border-b border-border-soft last:border-b-0">
+      <button className="w-full text-left px-3 py-3" onClick={() => setOpen((o) => !o)}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex items-baseline gap-3">
+            <span className="text-[12px] tracking-[0.04em] truncate">{session.prompt || '(unnamed session)'}</span>
+            <span className="text-[10px] text-faint shrink-0">
+              {fmtDate(session.started_at)}
+              {session.completed_at ? '' : ' · running'}
+            </span>
           </div>
-          <div className="text-right text-xs text-dim shrink-0 tabular">
+          <div className="flex items-baseline gap-3.5 shrink-0 text-[10px] tabular">
             {st ? (
               <>
-                <div>{st.tasksOnDevice} on-device · {st.tasksCloud} cloud</div>
-                <div style={{ color: 'var(--accent-2)' }}>{st.cloudTokensSaved} tok saved</div>
+                <span className="text-faint">
+                  {String(st.tasksOnDevice).padStart(2, '0')} on-device · {String(st.tasksCloud).padStart(2, '0')} cloud
+                </span>
+                <span>{st.cloudTokensSaved} tok saved</span>
               </>
             ) : (
               <span className="text-faint">—</span>
             )}
+            <span className="text-faint">{open ? '▲' : '▼'}</span>
           </div>
         </div>
       </button>
       {open && detail && (
-        <div className="mt-3 border-t border-border pt-3">
-          <table className="w-full text-xs">
-            <thead className="text-faint uppercase text-[10px]">
-              <tr>
-                <th className="text-left font-normal pb-1">Task</th>
-                <th className="text-left font-normal pb-1">Who</th>
-                <th className="text-right font-normal pb-1">Tokens</th>
-                <th className="text-right font-normal pb-1">Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.tasks.map((t) => (
-                <tr key={t.id} className="border-t border-border/50">
-                  <td className="py-1 pr-2">{t.title}</td>
-                  <td className="py-1 pr-2">
-                    <span className="inline-flex items-center gap-1">
-                      {t.fallback ? 'Claude' : t.phone_name || '—'}
-                      {!t.fallback && <RuntimeBadge runtime={t.runtime} />}
-                    </span>
-                  </td>
-                  <td className="py-1 text-right tabular">{t.tokens_out || 0}</td>
-                  <td className="py-1 text-right" style={{ color: t.status === 'completed' && !t.fallback ? 'var(--ok)' : 'var(--claude)' }}>
-                    {t.fallback ? 'cloud' : t.status}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="border-t border-border-soft bg-surface">
+          <div className="grid grid-cols-[2fr_1fr_100px_100px] px-3 py-1.5 text-[9px] tracking-[0.14em] uppercase text-faint border-b border-border-soft">
+            <span>Task</span>
+            <span>Who</span>
+            <span className="text-right">Tokens</span>
+            <span className="text-right">Result</span>
+          </div>
+          {detail.tasks.map((t) => (
+            <div key={t.id} className="grid grid-cols-[2fr_1fr_100px_100px] px-3 py-1.5 text-[11px] border-b border-border-soft last:border-b-0">
+              <span>{t.title}</span>
+              <span className="inline-flex items-baseline gap-1.5">
+                {t.fallback ? 'Claude' : t.phone_name || '—'}
+                {!t.fallback && <RuntimeBadge runtime={t.runtime} />}
+              </span>
+              <span className="text-right tabular">{t.tokens_out || 0}</span>
+              <span className="text-right" style={{ color: t.status === 'completed' && !t.fallback ? 'var(--text)' : 'var(--text-faint)' }}>
+                {t.fallback ? 'cloud' : t.status}
+              </span>
+            </div>
+          ))}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -90,10 +88,18 @@ export default function History() {
     if (s.stats) refresh();
   }, [s.stats]);
 
-  if (!sessions) return <Card className="text-center text-dim py-10">Loading…</Card>;
-  if (!sessions.length) return <Card className="text-center text-dim py-10">No sessions yet.</Card>;
+  if (!sessions) return <div className="module text-center text-faint py-16 text-[11px]">Loading…</div>;
+  if (!sessions.length) {
+    return (
+      <div className="module dotfield text-center py-24 flex flex-col items-center gap-4">
+        <div className="pixel text-[46px] text-text">(NO RECORD)</div>
+        <div className="text-[11px] tracking-[0.18em] text-faint">00 sessions logged</div>
+      </div>
+    );
+  }
   return (
-    <div className="flex flex-col gap-3">
+    <div className="module">
+      <div className="px-3 py-2 border-b border-border text-[10px] tracking-[0.14em] uppercase text-faint">Sessions</div>
       {sessions.map((sess) => (
         <SessionRow key={sess.id} session={sess} />
       ))}

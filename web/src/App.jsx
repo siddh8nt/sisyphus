@@ -9,7 +9,7 @@ import WorkerView from './WorkerView.jsx';
 
 const TABS = [
   ['orchestration', 'Orchestration'],
-  ['vitals', 'Phone Vitals'],
+  ['vitals', 'Phone vitals'],
   ['configure', 'Configure'],
   ['history', 'History'],
 ];
@@ -26,36 +26,37 @@ export default function App() {
 
   return (
     <div className="min-h-full">
-      <header className="sticky top-0 z-10 bg-bg/90 backdrop-blur border-b border-border">
-        <div className="max-w-[1100px] mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
-              SISYPHUS
+      <header className="sticky top-0 z-10 bg-bg border-b border-border">
+        <div className="px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-baseline gap-3.5">
+            <span className="pixel text-[22px] text-text">SISYPHUS</span>
+            <span className="text-[10px] tracking-[0.14em] text-faint hidden sm:inline">
+              Edge compute for coding agents
             </span>
-            <span className="text-xs text-faint hidden sm:inline">edge compute for coding agents</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-dim">
+          <div className="flex items-center gap-2 text-[10px] tracking-[0.12em] text-faint">
             <StatusDot online={s.connected} />
-            {s.connected ? 'live' : 'reconnecting'} · {online} phone{online === 1 ? '' : 's'}
+            {s.connected ? 'Live' : 'Reconnecting'} · {String(online).padStart(2, '0')} phone{online === 1 ? '' : 's'}
           </div>
         </div>
-        <nav className="max-w-[1100px] mx-auto px-2 flex gap-1 overflow-x-auto">
+        <nav className="flex border-t border-border overflow-x-auto">
           {TABS.map(([key, label]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className="px-3 py-2 text-sm whitespace-nowrap border-b-2 transition-colors"
-              style={{
-                borderColor: tab === key ? 'var(--accent)' : 'transparent',
-                color: tab === key ? 'var(--text)' : 'var(--text-dim)',
-              }}
+              className="flex-1 px-4 py-2.5 text-[11px] tracking-[0.12em] whitespace-nowrap border-r border-border transition-colors"
+              style={
+                tab === key
+                  ? { background: 'var(--paper)', color: 'var(--ink)' }
+                  : { color: 'var(--text-faint)' }
+              }
             >
               {label}
             </button>
           ))}
         </nav>
       </header>
-      <main className="max-w-[1100px] mx-auto px-4 py-4">
+      <main className="max-w-[1240px] mx-auto px-6 py-6">
         {tab === 'orchestration' && <Orchestration />}
         {tab === 'vitals' && <Vitals />}
         {tab === 'configure' && <Configure />}
