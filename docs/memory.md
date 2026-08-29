@@ -732,3 +732,71 @@ read this entry + the last few above it, then `docs/phases.md`, then
 
 **No `Co-Authored-By: Claude` trailer on any commit** — commits are authored
 by the human alone.
+
+## 2026-08-29 — Dashboard GLITCH re-skin (commit `ac42000`)
+- **What:** applied a pure visual re-skin to the whole `web/` dashboard (App,
+  WorkerView, all 4 tabs, `components/ui.jsx`, `index.css`, `tailwind.config.js`,
+  `index.html`) from a design handoff supplied as a zip
+  (`Frontend wrapping project.zip`, extracted `GLITCH-HANDOFF.md` + a ready-to-
+  apply `apply/web/` tree that mirrors the repo 1:1).
+- **Look:** Silkscreen (display/wordmark/big numerals) + JetBrains Mono
+  (everything else); single-hue token set — `--signal: #3DDC84` is the *only*
+  color, replacing `--accent`/`--accent-2`/`--claude`/`--ok`/`--warn`/`--err`/
+  `--cpu`; zero border-radius; hairline 1px borders; no shadows/blur; light
+  "paper" analytical panels (`--paper`/`--ink`) for scoreboards/QR/sparklines;
+  monochrome glyph state chips (`■`/`●`/`△`/`○`/`✕`) replacing color-coded
+  states; square status dots; dot-grid empty states (`(STANDBY)`, `(NO
+  PHONES)`, `(READY)`).
+- **Verified pure re-skin, no logic/data/backend change** (this was explicitly
+  double-checked because the user flagged the risk): `git diff --stat web/`
+  touched only the 10 files above, nothing in `server/`/`mcp/`/`store.js`/
+  `main.jsx`. Full `App.jsx` diff = class strings + inline style tokens +
+  `String(online).padStart(2,'0')` display formatting only (`s.connected`/
+  `online` still store-derived). The only 3 non-cosmetic diffs, all mandated by
+  the handoff's component map: `Big({ label, value, last })` gained a styling-
+  only prop; `StateChip` maps state → `[glyph, color]` instead of a color
+  class; `Sparkline` renders discrete bars instead of a polyline (dropped the
+  now-nonexistent `--accent-2` color prop). Every tab + WorkerView still calls
+  `useStore()` and the same `/api/sessions`, `/api/sessions/:id`,
+  `/api/config/onboarding` fetches. One `mock-fleet` grep hit was onboarding
+  *command text* shown as styled copy, not mock data.
+- Committed as `ac42000` (10 files, +394/-272), pushed to `origin/main`. Two
+  unrelated commits pulled down afterward from a teammate's push:
+  `99e7a69` (orchestrator crash guards + telemetry self-heal on hub restart)
+  and `7d458fb` (mobile nav fits without scroll + History expanded by default)
+  — fast-forwarded cleanly, no conflicts, nothing touched `demo/target-app/`.
+- **`demo/target-app/` deliberately left dirty/uncommitted throughout** (the
+  habit-tracker streak-stats feature from an earlier session) — never staged,
+  never pushed. It stays as local-only working-tree changes so the demo app
+  can be rebuilt fresh and live at the venue rather than replaying committed
+  output. Standing rule, unchanged from earlier checkpoints.
+
+## 2026-08-29 — Phase 9 scope cut: drop GenieX/Tier 3, WebView wrapper not native Compose UI
+- **Decision:** Phase 9's original two-tier plan (Tier 2 Compose UI + LlamaServerEngine,
+  Tier 3 in-process GenieX NPU inference) is cut down. **GenieX / Tier 3 /
+  `EmbeddedEngine` are dropped entirely** — no in-process inference swap. Also
+  **dropping the from-scratch Jetpack Compose worker-view UI** — the existing
+  web worker view (`/worker/:id`) already satisfies the rubric's "big name,
+  streaming pane, telemetry, tok/s, idle READY" requirements and rebuilding it
+  natively would just be re-implementing working code for no functional gain.
+- **New Phase 9 design:** a minimal native Android app that is a **fullscreen
+  WebView shell** pointed at `http://<hub-ip>:4100/worker/<name>` (kiosk-style:
+  no browser chrome, no nav bar, screen-awake). This alone satisfies "the demo
+  must run on the phone as an installed app" for the rubric — zero web-side
+  changes needed, the worker view is reused as-is.
+  - Optional value-add kept: native telemetry via Android `BatteryManager`/
+    `PowerManager` APIs POSTed to the existing heartbeat endpoint, replacing
+    `phone/telemetry.sh` + the Termux:API dependency (more reliable — the
+    current shell-script telemetry loop dies when Termux is backgrounded/OOM-
+    killed, the #1 live-demo fragility noted in the earlier context-switch
+    handoff).
+  - Optional creative-phone-use hook kept: QR-scan-to-join instead of pasting
+    the Termux one-liner, or auto-launch/re-register on boot.
+  - Inference itself is untouched — Ollama (CPU) and `llama-server` (NPU) keep
+    running exactly as today via Termux; the app doesn't touch inference, so
+    there is no `InferenceEngine` interface to build or engine to swap.
+- **Why:** smaller surface area for the remaining time, reuses 100% of proven
+  Phase 4/5 dashboard work, and removes the riskiest/most speculative part of
+  the original plan (GenieX bring-up was already flagged "timeboxed" and never
+  started). Not yet implemented — this entry documents the scope decision only;
+  see `docs/phases.md` Phase 9 for the updated task list.

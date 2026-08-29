@@ -26,6 +26,19 @@ date each phase passes.
 > **NEXT:** (1) re-establish the hub (same machine or new) + re-attach the 3
 > iQOOs · (2) Phase 7 real-phone prompt tuning · (3) rehearse the proven demo
 > prompt live · (4) Phase 9 native app, if time allows.
+> **UI re-skin done (2026-08-29, siddh's machine).** Dashboard restyled to the
+> "GLITCH" design system (Silkscreen/JetBrains Mono, single-hue `--signal`
+> green, zero radius, monochrome glyph states) — pure visual change, verified
+> no data/logic/backend touched. Committed `ac42000`, pushed to `origin/main`;
+> pulled 2 unrelated teammate commits (crash guards + mobile nav fix)
+> afterward, fast-forward, no conflicts. Full verification detail in
+> memory.md.
+> **Phase 9 scope cut (2026-08-29).** Dropped GenieX/Tier 3 (in-process NPU
+> inference) and the from-scratch Compose UI entirely. New plan: a native
+> Android app is just a fullscreen kiosk WebView around the existing
+> `/worker/:id` page — reuses Phase 5's worker view as-is, no inference
+> changes. Optional stretch: native BatteryManager/PowerManager telemetry
+> replacing the fragile `telemetry.sh` loop. See Phase 9 below + memory.md.
 
 ---
 
@@ -241,48 +254,49 @@ Polished human /sisyphus run in Claude Code still to demo. · **Passed:** 2026-0
 
 ---
 
-## Phase 9 — Native Android worker app (Tier 2 -> Tier 3) [FUTURE, LOCKED PLAN]
+## Phase 9 — Native Android worker-view wrapper [SCOPE CUT 2026-08-29, LOCKED PLAN]
 Additive layer, started ONLY once Phases 0-8 are bulletproof. Banks the iQOO
 Hackathon's phone-first score (25% device telemetry: creative phone use + Office
-Kit; "demo must run on the phone"). Decision: **skip the WebView tier; build the
-native app (Tier 2), then swap inference in-process (Tier 3).** See prd.md
-"Strategy / roadmap" + the 2026-08-29 decision log in memory.md.
+Kit; "demo must run on the phone").
 
-**Design (fixed):**
-- The **app owns the endpoint**: a tiny in-app HTTP server (Ktor/NanoHTTPD) that
-  the orchestrator dispatches to. Inference goes through a swappable interface:
-  `interface InferenceEngine { generate(prompt, onToken) }` with
-  `LlamaServerEngine` (proxies to the on-phone llama-server = Tier 2, proven) and
-  `EmbeddedEngine` (GenieX in-process = Tier 3). Orchestrator never changes; Tier
-  3 = swap one class; if GenieX fights us, flip back to LlamaServerEngine.
-- Engine stays llama.cpp until Tier 3. GenieX is timeboxed.
+> **SCOPE CUT (2026-08-29):** GenieX / Tier 3 / in-process NPU inference is
+> **dropped entirely** — no `InferenceEngine` interface, no engine swap. The
+> from-scratch Jetpack Compose worker-view UI is also dropped — the existing
+> web worker view (`/worker/:id`, Phase 5) already meets the bar (big name,
+> streaming pane, telemetry, tok/s, idle READY) and is reused as-is instead of
+> being rebuilt natively. See the matching entry in `docs/memory.md`.
+
+**Design (current):** a minimal native Android app that is a **fullscreen
+WebView shell**, kiosk-style (no browser chrome/nav bar, screen-awake), pointed
+at `http://<hub-ip>:4100/worker/<name>`. This alone makes "an installed app is
+the phone's demo surface" true for the rubric with zero web-side changes.
+Inference (Ollama CPU / llama-server NPU via Termux) is completely untouched —
+the app never talks to the model, only displays the existing dashboard page.
 
 **Prereq:** Android Studio + JDK + Android SDK on the laptop (adb already present).
 
-**Tier 2 tasks (do first):**
-- [ ] WALKING SKELETON FIRST (before UI polish): app installs on the iQOO ->
-  registers as the phone's endpoint -> proxies one request to the local
-  llama-server -> streams a token back -> reports battery/thermal. Prove the pipes
-  on the real device.
-- [ ] In-app HTTP endpoint + `InferenceEngine` interface + `LlamaServerEngine`.
-- [ ] Native worker-view UI (Jetpack Compose): big name, streaming code pane,
-  telemetry strip, token counter + tok/s, idle READY. Legible at 1.5m.
-- [ ] Native device telemetry via Android APIs (BatteryManager / thermal / CPU) ->
-  heartbeat to orchestrator (replaces telemetry.sh for app phones).
-- [ ] One phone-feature for "creative phone use" 15% (e.g. voice-to-task via
-  SpeechRecognizer, or camera-QR to join).
+**Tasks:**
+- [ ] WALKING SKELETON FIRST (before anything else): app installs on the iQOO,
+  loads `/worker/<name>` fullscreen, looks identical to the current browser
+  worker view. Prove it on the real device before adding anything native.
+- [ ] Kiosk mode: hide system UI, keep screen awake (`FLAG_KEEP_SCREEN_ON`),
+  auto-reload on connection drop.
+- [ ] (optional value-add) Native device telemetry via Android APIs
+  (BatteryManager / PowerManager) → POST to the existing heartbeat endpoint,
+  replacing `phone/telemetry.sh` + the Termux:API dependency. Motivation: the
+  current shell-script telemetry loop dies when Termux is backgrounded/OOM-
+  killed — the #1 live-demo fragility flagged in the 2026-08-29 context-switch
+  handoff (`docs/HANDOFF_2026-08-29.md` §6).
+- [ ] (optional) One phone-feature for "creative phone use" 15%, e.g. QR-scan-
+  to-join instead of pasting the Termux setup one-liner, or auto-launch/
+  re-register on boot.
 - [ ] Office Kit so the demo/dashboard runs on the phone -> Office Kit 10%.
-
-**Tier 3 tasks (after Tier 2 works, timeboxed):**
-- [ ] `EmbeddedEngine` via GenieX (`com.qualcomm.qti:geniex-android`) - in-process
-  NPU inference. Swap it in; keep LlamaServerEngine as the standing fallback.
-- [ ] Verify Qwen2.5-Coder Q4_0 (or Llama-3.2-3B fallback) runs on v81 in-app.
 
 **Open question:** the "run Claude Code on the phone" demo mechanic - Claude Code
 is a CLI, not the Claude mobile app. Decide the actual on-phone agent surface when
 we get here (likely: laptop Claude Code mirrored to the phone via Office Kit).
 
-**Acceptance:** demo runs on the iQOO phone; device telemetry registers phone use
-+ Office Kit; the app is the endpoint and streams real inference (llama-server at
-Tier 2, GenieX at Tier 3); core demo still passes untouched.
+**Acceptance:** demo runs on the iQOO phone inside the installed app (not a
+browser tab); device telemetry registers phone use + Office Kit; core demo
+still passes untouched.
 **Status:** [ ] FUTURE (after core is solid) · **Passed:** —
