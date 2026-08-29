@@ -6,14 +6,14 @@ date each phase passes.
 > **STATUS: AT THE VENUE, LIVE (2026-08-29). Phase 8 hardware acceptance PASSED.**
 > All 3 iQOOs onboarded (CPU) + NPU-deployed (v81). Real parallel run: 3/3 on
 > NPU, 574 cloud tokens saved, 16.7s, 0 fallback. NPU bundle BUILT.
-> **Phase 6.5 chaos test PASSED (2026-08-29, siddh's machine):** NPU-kill →
-> health-check flip (~10s) → CPU takeover, narrated; full phone drop
-> (`am force-stop com.termux`) → graceful exclusion + redistribution, 0 cloud
-> fallback. Fleet restored, 3/3 online on NPU.
-> **NEXT:** (1) controlled NPU-vs-CPU benchmark · (2) polished human /sisyphus
-> run in Claude Code · (3) Phase 7 real-phone prompt tuning · (4) Phase 9 native
-> app. Vitals battery/temp deferred (Termux:API app) — actually already fixed,
-> see memory.md.
+> **Phase 6.5 CLOSED (2026-08-29, siddh's machine).** Chaos test PASSED:
+> NPU-kill → health-check flip (~10s) → CPU takeover, narrated; full phone
+> drop (`am force-stop com.termux`) → graceful exclusion + redistribution, 0
+> cloud fallback. Controlled NPU-vs-CPU bench DONE: **avg 2.1x decode speedup,
+> avg 11.2x prefill/TTFT speedup** (real pitch stat, see memory.md). Fleet
+> restored, 3/3 online on NPU.
+> **NEXT:** (1) polished human /sisyphus run in Claude Code (demo/target-app)
+> · (2) Phase 7 real-phone prompt tuning · (3) Phase 9 native app.
 
 ---
 
@@ -151,9 +151,12 @@ Tasks:
 - [x] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
   — DONE 2026-08-29, iqoo-1 (SM8850/v81): bundle+model pushed over USB,
   llama-server on HTP0, NPU+CPU endpoints grouped, real code returned on NPU.
-- [~] Benchmark NPU vs CPU tok/s + prefill → memory.md
-  — first signal: NPU 9.6 tok/s > CPU 4.4-8.2 tok/s (uncontrolled). Controlled
-  identical-prompt bench still TODO.
+- [x] Benchmark NPU vs CPU tok/s + prefill → memory.md
+  — CONTROLLED bench DONE 2026-08-29 (`server/scripts/bench.js`, real prod
+  code path, identical prompt on all 3 phones): **avg 2.1x decode speedup
+  (8.92 vs 4.31 tok/s), avg 11.2x prefill/TTFT speedup (919ms vs 10.3s)**.
+  This supersedes the earlier uncontrolled 9.6-vs-4.4-8.2 signal (mixed task
+  sizes) as the real pitch stat. Full per-phone table in memory.md.
 - [x] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
   — DONE 2026-08-29 on siddh's machine, real hardware. Two tests, both PASS:
   (1) killed iqoo-2's NPU via `start-npu.ps1 -Stop`; health check flipped
@@ -175,8 +178,8 @@ Tasks:
 **Acceptance:** full demo where a phone completes a task on Hexagon NPU (NPU
 badge, `usage` counts) AND a forced-failure run with seamless CPU fallback.
 Time-box: 2 sessions → Plan B (NexaSDK) → 2 sessions → ship CPU-only, document.
-**Status:** [x] PASSED · **Passed:** 2026-08-29 (controlled NPU-vs-CPU bench
-still tracked separately, see Phase 8 follow-up in memory.md)
+**Status:** [x] PASSED (all tasks done — chaos test + controlled bench) ·
+**Passed:** 2026-08-29
 
 ---
 

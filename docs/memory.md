@@ -578,3 +578,26 @@ only works on processes adb itself spawned (like llama-server via
 
 **Phase 6.5 CLOSED.** Remaining from the handoff's priority list: controlled
 NPU-vs-CPU benchmark (identical prompt) → polished human /sisyphus demo run.
+
+## 2026-08-29 — Controlled NPU-vs-CPU benchmark (identical prompt, all 3 iQOOs)
+Added `server/scripts/bench.js` — reuses the REAL production `generate()` +
+`buildWorkerPrompt()` code path (not a synthetic bench), runs one task
+("debounce utility", ~58-60 output tokens) sequentially against a phone's
+NPU (:8080) then CPU (:11434) endpoints, same sampling (temp 0.2, num_predict
+1200). Measures time-to-first-token (TTFT, i.e. prefill+dispatch latency) and
+steady-state decode tok/s. Usage: `node server/scripts/bench.js <phoneName>`.
+
+**Results (all 3 iQOO 15 / SM8850 / Hexagon v81):**
+| phone | NPU tok/s | CPU tok/s | decode speedup | NPU TTFT | CPU TTFT | prefill speedup |
+|---|---|---|---|---|---|---|
+| iqoo-1 | 7.81 | 4.31 | 1.81x | 1451ms | 10382ms | 7.2x |
+| iqoo-2 | 9.45 | 4.63 | 2.04x | 715ms | 9463ms | 13.2x |
+| iqoo-3 | 9.51 | 4.00 | 2.38x | 592ms | 11093ms | 18.7x |
+| **avg** | **8.92** | **4.31** | **~2.1x decode** | **919ms** | **10313ms** | **~11.2x prefill** |
+
+**This is the real pitch stat** (controlled, identical-prompt, apples-to-apples
+— not the earlier uncontrolled 9.6 vs 4.4-8.2 signal from mixed task sizes).
+The prefill/TTFT gap is the more dramatic number: the Hexagon NPU dispatches
+and starts generating ~11x faster than CPU on the same prompt, on top of a
+~2x faster decode rate. Combined, a real coding task returns roughly 2-3x
+faster wall-clock on NPU vs CPU on the same phone.
