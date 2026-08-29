@@ -528,3 +528,53 @@ Phone-side install → survives the hotspot switch to siddh's machine.
 CPU load still "—": Android 16 SELinux blocks /proc/loadavg for unprivileged
 Termux (dumpsys + sysfs also blocked). Not fixable without root; card renders
 "—" correctly. Not the rubric telemetry anyway (that's Office Kit).
+
+## 2026-08-29 — Chaos test PASSED on siddh's machine (closes Phase 6.5)
+Hub re-attached on siddh's machine after the context switch: firewall rule
+persisted across reboot; hotspot needed manual re-enable (share from Wi-Fi —
+"Ethernet/Wi-Fi/cellular" error on first attempt was because the hotspot UI
+briefly couldn't see an upstream connection, resolved on retry); all 3 iQOOs
+re-joined via `setup.sh` one-liner (fast reconnect, no re-pull) and NPU
+re-registered via `start-npu.ps1 -Serial <s>` per phone (on-device bundle
+intact, no 2GB re-push needed) — 3/3 online, cpu+npu healthy, activeRuntime=npu.
+
+**Test 1 — NPU kill → health-check flip → CPU takeover:**
+Killed iqoo-2's NPU (`start-npu.ps1 -Stop`). Polled `/api/phones`: flipped
+npu healthy=false / activeRuntime=cpu within ~10s (health-check interval is
+5s; kill landed between ticks, so up to 2 cycles — slower than the "~6s"
+guess in the handoff but expected given the interval). A fresh delegate run
+(3 tasks, 1/phone) then routed iqoo-2's task straight to CPU automatically
+(`runtime:"cpu", fallback:false`), valid code, while iqoo-1/iqoo-3 stayed on
+NPU. 0 cloud fallback. The narration line
+(`NPU endpoint on iqoo-2 is unavailable — routing this task to CPU.`) fires
+deterministically from `runTask`'s `hasUnhealthyNpu` check, confirmed true at
+dispatch time.
+
+**Test 2 — full phone drop → graceful exclusion + redistribution:**
+Tried `adb shell pkill -f "ollama serve"` first — failed: **"Operation not
+permitted."** Root cause: `ollama serve` runs under the Termux app's own UID
+(started from inside the Termux terminal), while `adb shell` runs as the
+unprivileged `shell` user — Android's app-sandboxing blocks cross-UID
+signals. (This is why `start-npu.ps1`'s `pkill -f llama-server` DOES work —
+that process was spawned directly by `adb shell`, so it's owned by `shell`
+itself.) Fix: `adb shell am force-stop com.termux` — a privileged OS-level
+action `shell` is allowed to invoke on any package, kills the whole app
+including telemetry.sh — this is also a more faithful simulation of the
+actual documented live-demo risk (Android backgrounding/OOM-killing Termux)
+than any synthetic single-process kill would be.
+Result: iqoo-2 flipped `status=offline` within ~10s (heartbeat timeout),
+both endpoints unhealthy. A delegate run (3 tasks) correctly EXCLUDED iqoo-2
+from the assignable pool (`onlinePhones().filter(pickEndpoint)`) and
+redistributed its share via least-loaded to iqoo-1 (1 task) + iqoo-3 (2
+tasks) — all 3 completed on NPU, 0 cloud tokens needed. System self-healed
+with no manual routing.
+Restored iqoo-2: re-ran `setup.sh` (relaunches telemetry + ollama) then
+`start-npu.ps1 -Serial 10BFAT1U6A000XP` (USB) — back to 3/3 online, all NPU.
+
+**New operational note:** to forcibly kill a Termux-hosted server (ollama)
+from adb for testing, use `am force-stop com.termux`, not `pkill` — pkill
+only works on processes adb itself spawned (like llama-server via
+`adb shell nohup ... &`).
+
+**Phase 6.5 CLOSED.** Remaining from the handoff's priority list: controlled
+NPU-vs-CPU benchmark (identical prompt) → polished human /sisyphus demo run.

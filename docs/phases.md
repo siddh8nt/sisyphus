@@ -6,12 +6,14 @@ date each phase passes.
 > **STATUS: AT THE VENUE, LIVE (2026-08-29). Phase 8 hardware acceptance PASSED.**
 > All 3 iQOOs onboarded (CPU) + NPU-deployed (v81). Real parallel run: 3/3 on
 > NPU, 574 cloud tokens saved, 16.7s, 0 fallback. NPU bundle BUILT.
-> **CONTEXT SWITCH IN PROGRESS:** akshat's Claude Code hit its usage limit; dev
-> moving to siddh8nt's machine. **Read `docs/HANDOFF_2026-08-29.md` first**, then
-> the last ~4 memory.md entries.
-> **NEXT:** (1) chaos test → closes 6.5 · (2) controlled NPU-vs-CPU benchmark ·
-> (3) polished human /sisyphus run in Claude Code · (4) Phase 7 real-phone prompt
-> tuning · (5) Phase 9 native app. Vitals battery/temp deferred (Termux:API app).
+> **Phase 6.5 chaos test PASSED (2026-08-29, siddh's machine):** NPU-kill →
+> health-check flip (~10s) → CPU takeover, narrated; full phone drop
+> (`am force-stop com.termux`) → graceful exclusion + redistribution, 0 cloud
+> fallback. Fleet restored, 3/3 online on NPU.
+> **NEXT:** (1) controlled NPU-vs-CPU benchmark · (2) polished human /sisyphus
+> run in Claude Code · (3) Phase 7 real-phone prompt tuning · (4) Phase 9 native
+> app. Vitals battery/temp deferred (Termux:API app) — actually already fixed,
+> see memory.md.
 
 ---
 
@@ -152,13 +154,29 @@ Tasks:
 - [~] Benchmark NPU vs CPU tok/s + prefill → memory.md
   — first signal: NPU 9.6 tok/s > CPU 4.4-8.2 tok/s (uncontrolled). Controlled
   identical-prompt bench still TODO.
-- [ ] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
+- [x] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
+  — DONE 2026-08-29 on siddh's machine, real hardware. Two tests, both PASS:
+  (1) killed iqoo-2's NPU via `start-npu.ps1 -Stop`; health check flipped
+  npu→unhealthy + activeRuntime→cpu within ~10s (no manual step); a fresh
+  delegate run then routed iqoo-2's task straight to CPU (`fallback:false`,
+  valid code) while iqoo-1/iqoo-3 stayed on NPU — 0 cloud tokens.
+  (2) `adb shell am force-stop com.termux` on iqoo-2 (kills ollama + telemetry
+  together — the actual "Android backgrounds/OOM-kills Termux" live-demo risk,
+  not a synthetic one) — phone flipped fully `offline` within ~10s (both
+  endpoints unhealthy). A delegate run then excluded iqoo-2 entirely and
+  redistributed its share to iqoo-1/iqoo-3 (least-loaded: 1/2 split) — all 3
+  tasks completed on NPU, 0 cloud fallback needed. Fleet restored afterward
+  (re-ran setup.sh + start-npu.ps1 on iqoo-2) — verified 3/3 online, npu
+  healthy. Note: `adb shell pkill ollama` fails with "Operation not permitted"
+  — ollama runs under Termux's app UID, unreachable by the unprivileged `shell`
+  user; `am force-stop` is the correct privileged tool for killing a Termux
+  server from adb.
 
 **Acceptance:** full demo where a phone completes a task on Hexagon NPU (NPU
 badge, `usage` counts) AND a forced-failure run with seamless CPU fallback.
 Time-box: 2 sessions → Plan B (NexaSDK) → 2 sessions → ship CPU-only, document.
-**Status:** [~] research + scripts DONE (phone-independent); on-device bring-up
-awaits iQOO phones. · **Passed:** —
+**Status:** [x] PASSED · **Passed:** 2026-08-29 (controlled NPU-vs-CPU bench
+still tracked separately, see Phase 8 follow-up in memory.md)
 
 ---
 
