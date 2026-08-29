@@ -943,3 +943,115 @@ by the human alone.
   changes (`web/index.html`, `web/src/index.css`, `web/src/WorkerView.jsx`,
   `web/public/fonts/`), and docs. `demo/target-app/` deliberately NOT committed
   (stays pristine for a fresh live demo).
+
+## 2026-08-30 — Phase 10: delegation brain (approval + deterministic gate + token efficiency)
+Big rework of *how* Claude delegates, driven by four asks: (1) make SKILL.md
+technical/accurate; (2) route through human approval on the dashboard; (3) bake
+unit tests into each phone task; (4) replace "Claude reads every snippet" with a
+deterministic gate + only read on failure. All backend/web/MCP/docs; **real
+phones untouched — the gate runs entirely on the hub**. Not committed (standing
+rule; `demo/target-app/` stays pristine and this includes its SKILL.md).
+
+- **SKILL.md rewritten** to a real spec: tools table, capacity-budgeted
+  decomposition, and the load-bearing filter — *if you can't write tests that
+  would make you trust the output without reading it, the task is too big.*
+  Teaches baked-in tests, `estTokens`/`confidence`, and apply-don't-read
+  integration. It lives under `demo/target-app/.claude/skills/` so it's part of
+  the never-commit demo tree.
+
+- **Human-approved routing.** `engine.delegate` assigns least-loaded (unchanged),
+  then sets each task `awaiting_approval`, emits `approval_pending {tasks,
+  timeoutMs}`, and **blocks on a Promise** until `POST /api/session/approve
+  {overrides}` resolves it — or a 120s timer auto-approves (`APPROVAL_TIMEOUT_MS`)
+  so a headless/CI run never deadlocks. `overrides[taskId]='claude'` splices the
+  task out of its phone queue and marks it `reassigned` (`fallback:true`,
+  status `reassigned`). The pending table also rides the WS `hello` snapshot
+  (`setSnapshotProvider` now merges `engine.pendingApproval()`), so a dashboard
+  opened mid-wait renders it immediately — this was the one E2E miss on the first
+  run (the test raced the WS open), fixed by handling both `approval_pending` and
+  the `hello.approval` path.
+- **ETA/confidence.** ETA = `estTokens ÷ tok/s + overhead`; tok/s prefers the
+  session-observed per-phone average, else `ETA_TOK_PER_SEC` defaults
+  (npu 20 / cpu 8). Confidence is Claude's own calibrated 0-100, passed through
+  for the operator to judge what to toggle back.
+
+- **Deterministic gate.** `validate()` now returns a structured `checks[]`
+  (`{kind:'structure'|'syntax'|'regex', name, ok, detail?}`) instead of just
+  first-error — so every check is a log row, not only the failing one. New
+  `server/lib/test-runner.js` runs Claude-authored `tests` [{name, code}] where
+  `code` is the body of `async (mod, assert)`: it writes the generated module +
+  a zero-dep harness to a temp dir and runs them in a **child Node process**
+  (20s overall / 5s per test via `TEST_RUN_TIMEOUT_MS`/`PER_TEST_TIMEOUT_MS`), so
+  a hung or crashing generated module can't take the hub down. JS-only
+  (`.js/.mjs/.cjs`); CJS-vs-ESM detected by a heuristic and written as `.cjs`/
+  `.mjs` to sidestep package-type ambiguity; non-JS targets get a "skipped" row.
+  Gate = validate checks + test rows; on fail, `describeGateFailure` feeds the
+  exact failing checks into the one retry. Log emitted as `task_gate`, persisted
+  to `tasks.gate_json` (schema column + `ALTER TABLE` migration for existing DBs),
+  rendered as the worker-view `GateLog` panel (web + kiosk). New lifecycle state
+  `testing` between `validating` and `completed`.
+- **Why child-process, not vm/worker_threads:** the generated code is untrusted
+  3B-model output; a separate process is the only clean hard-kill on an infinite
+  loop, and it isolates `process.exit`/native crashes. Cost is ~1 spawn per
+  tested task — negligible next to a 120s generation budget.
+
+- **Token efficiency.** `result()` includes `code` ONLY when Claude must act on
+  it (gate failed / fallback / reassigned); gate-passed code stays on the hub.
+  `delegate`'s MCP text return summarizes gate-passed tasks and dumps full JSON
+  only for `needsAttention`. Two new MCP tools: `sisyphus_apply` reads
+  `GET /api/session/tasks` and writes gate-passed files to disk **from the MCP
+  process cwd** (= demo project root via `.mcp.json`), path-traversal guarded,
+  contents never returned; `sisyphus_fetch` returns one task's code + full gate
+  log for deliberate inspection. `listSessionTasks()` serves both and falls back
+  to the most-recent stored session if none is active (so `apply` works after
+  `complete`). MCP is now **6 tools**; `DELEGATE_TIMEOUT_MS` = 600s (was 150s)
+  to cover approval + generation.
+
+- **Verified (all green):**
+  - E2E (`scratchpad/e2e-gate-test.mjs`, isolated hub :4180 + scratch DB + mock
+    fleet): 15/15 — gate-pass with code withheld (5/5 checks), gate-fail on a
+    real `'2' !== 5` assertion diff → retry → fallback WITH salvageable last
+    code, operator reassignment honored, `approval_pending`/`approval_resolved`/
+    `task_gate` all emitted, and `complete` stats correct (1 on-device / 2 cloud).
+  - MCP stdio smoke (`scratchpad/mcp-smoke.mjs`): 6 tools registered; `apply`
+    wrote `src/echo.js` to disk and the output confirmed the code was NOT
+    returned through the tool; `fetch` returned code + gate log.
+  - Browser walkthrough: approval table with all columns, PHONE↔CLAUDE toggle
+    flipped model→claude + ETA→— + button→"1 → PHONES · 1 → CLAUDE", approve
+    dispatched, worker view showed `■ PASSED 5/5` with named per-test rows +
+    timings. Dashboard rebuilt (`vite build`, clean, 34 modules).
+- **Gotcha:** the reassignment splice originally used `indexOf` unguarded — a
+  miss returns -1 and `splice(-1,1)` removes the wrong item. Guarded to only
+  splice when `i >= 0`.
+- **Files:** `server/{config,engine,index}.js`, `server/lib/{validate,test-runner}.js`,
+  `server/db/{schema.sql,index.js}`, `server/routes/session.js`, `mcp/index.js`,
+  `web/src/{store.js,WorkerView.jsx}`, `web/src/components/ui.jsx`,
+  `web/src/tabs/Orchestration.jsx`, and docs (architecture, README, phases, prd,
+  design, this entry) + the un-committed `demo/target-app/.../SKILL.md`.
+
+## 2026-08-30 — demo/target-app removed; skill + .mcp.json relocated to repo root
+- **What:** deleted `demo/target-app/` (the Habit Tracker demo app) entirely, per
+  operator decision. Before deleting, moved the two files that are product logic,
+  not demo run-state:
+  - `demo/target-app/.claude/skills/sisyphus/SKILL.md` → **`.claude/skills/sisyphus/SKILL.md`** (repo root)
+  - `demo/target-app/.mcp.json` → **`.mcp.json`** (repo root; `args` fixed from
+    `../../mcp/index.js` to `mcp/index.js`)
+- **Why:** the SKILL.md is the delegation brain — leaving its only copy inside a
+  directory that gets reverted "to pristine" meant the Phase 10 rewrite could be
+  wiped. At the root it travels with the repo, and `/sisyphus` works from the
+  repo root out of the box. The demo now targets **any project**: copy
+  `.mcp.json` + `.claude/skills/sisyphus/` into it (`sisyphus_apply` writes
+  gate-passed files to Claude Code's cwd, so the target is wherever Claude Code
+  is opened).
+- **Supersedes:** the standing rule "`demo/target-app/` must never be committed /
+  stays pristine for the demo" — obsolete, the directory no longer exists. The
+  skill + `.mcp.json` at the root SHOULD be committed like any product code.
+- **Verified no runtime impact:** zero references to `target-app`/`demo/` in
+  `server/`, `mcp/`, `web/` (grep). Hub (`npm start`) + ws-tap left running
+  untouched. Killed one leftover `node server.js` (PID 29300) — the old Habit
+  Tracker dev server, which was holding a cwd lock on the folder.
+- **Docs updated:** README (demo section + layout tree), demo/DEMO_SCRIPT.md
+  (target-agnostic seed prompt, checklist, reset, gate in minute-by-minute),
+  docs/VENUE_RUNBOOK.md Part E, docs/prd.md demo flow step 2,
+  docs/architecture.md skill heading, docs/phases.md Phase 10 path note.
+  Historical log entries mentioning target-app left as-is (they are records).

@@ -101,37 +101,69 @@ connect the server sends a `hello` snapshot: current phones + active session.
 - Validation pipeline (see §Validation below).
 - Session stats persisted in SQLite (see §Schema).
 
-## Validation pipeline
+## Deterministic gate (validation + baked-in tests)
+Replaces "Claude reads and reviews every snippet": the hub certifies outputs
+mechanically, and Claude only pulls a snippet into context when the gate fails.
 1. Extract the **first** fenced code block.
 2. Reject if empty, or prose markers present ("Here is", "Sure,"), or unbalanced fences.
 3. Syntax check by extension: `.js/.mjs` → `node --check` (temp file);
    `.json` → `JSON.parse`; `.html/.css` → basic well-formedness heuristics;
    others → skip.
 4. Task-specific `checks` (array of regex strings) must all match.
-On failure → **one** retry with validator error appended to the prompt.
-On second failure → `failed`, return `fallback:true` (Claude does it; attributed
-to cloud).
+5. Task-specific `tests` (baked in by Claude at delegation time,
+   `[{name, code}]`, JS targets only): `server/lib/test-runner.js` writes the
+   generated module + a harness to a temp dir and runs them in a **child Node
+   process** (20s overall / 5s per test). Each test body is
+   `async (mod, assert)` — `mod` = imported module, `assert` = node:assert/strict.
+Every check emits a row `{kind: structure|syntax|regex|test, name, ok, detail?,
+durationMs?}`; the full log goes out as WS `task_gate`, persists to
+`tasks.gate_json`, and renders on the worker view (web + kiosk app).
+On failure → **one** retry with the failing checks appended to the prompt.
+On second failure → `failed`, return `fallback:true` with the last code attempt
+(Claude does it; attributed to cloud).
+
+## Routing approval (dashboard human-in-the-loop)
+`delegate` assigns tasks least-loaded, then emits `approval_pending` with the
+routing table `[{taskId, title, file, phoneName, model, runtime, etaSec,
+confidence, estTokens, tests}]` and **blocks** until
+`POST /api/session/approve {overrides}` from the Orchestration tab (or
+auto-approves after 120s so headless runs never deadlock). `overrides` maps
+taskId → `'claude'` for rows the operator toggled; those tasks are marked
+`reassigned` (`fallback:true`) and returned to Claude without dispatching.
+ETA = `estTokens / tok-per-sec` (session-observed per phone, else per-runtime
+defaults) + fixed overhead. The pending table also rides the WS `hello`
+snapshot so a dashboard opened mid-wait still shows it.
 
 ## MCP server (`mcp/`) — stdio, thin HTTP client to :4100
-Four tools (stable names/contracts):
+Six tools (stable names/contracts):
 1. `sisyphus_status()` → `{ phones:[{name, runtimes, models, healthy}], online }`.
 2. `sisyphus_log(text)` → emits `reasoning{source:"claude"}`. → `{ ok }`.
-3. `sisyphus_delegate({ tasks:[{title,file,language,spec,checks?}], keep?:[{title,rationale}] })`
-   → registers plan, dispatches in parallel, **blocks** until all settle,
-   returns `[{ taskId, title, status, code?, tokensOut, phoneName, runtime, fallback }]`.
-4. `sisyphus_complete({ summary, filesChanged })` → finalizes stats, emits
+3. `sisyphus_delegate({ tasks:[{title,file,language,spec,checks?,tests?,estTokens?,confidence?}], keep?:[{title,rationale}] })`
+   → registers plan, waits for operator approval, dispatches in parallel,
+   **blocks** until all settle, returns
+   `[{ taskId, title, status, gate, tokensOut, phoneName, runtime, fallback, reassigned? , code? }]`
+   — `code` present **only** for gate-failed / fallback / reassigned tasks.
+4. `sisyphus_apply({ taskIds? })` → writes gate-passed tasks' files into the
+   project (cwd of the MCP process) without returning contents. Path-traversal
+   guarded.
+5. `sisyphus_fetch({ taskId })` → one task's full code + gate/test log, for
+   deliberate inspection only.
+6. `sisyphus_complete({ summary, filesChanged })` → finalizes stats, emits
    `session_completed`. → `{ stats }`.
 
 MCP → orchestrator HTTP: `POST /api/session/start`, `POST /api/session/log`,
-`POST /api/session/delegate` (blocking), `POST /api/session/complete`,
-`GET /api/status`.
+`POST /api/session/delegate` (blocking), `POST /api/session/approve`,
+`GET /api/session/tasks`, `POST /api/session/complete`, `GET /api/status`.
 
-## `/sisyphus` skill (in demo project `.claude/skills/sisyphus/SKILL.md`)
-See §3 of OPUS_BUILD_PROMPT. Flow: status → decompose → log reasoning →
-delegate (precise specs) → do kept work → review snippets → integrate →
+## `/sisyphus` skill (repo root `.claude/skills/sisyphus/SKILL.md`, paired with root `.mcp.json`)
+Flow: status → decompose (capacity-budgeted) → log reasoning → delegate
+(precise specs + baked-in tests + estTokens/confidence) → operator approves
+routing on the dashboard → do kept + reassigned work → `sisyphus_apply` the
+gate-passed files (never read them) → salvage/rewrite gate-failed ones →
 complete → print summary table. Offload criteria: single self-contained file;
-spec < 15 lines; no wider-codebase knowledge beyond pasted signatures; not
-security/auth/schema/architecture; low blast radius.
+spec < 15 lines; output ≤ ~120 lines; no wider-codebase knowledge beyond
+pasted signatures; not security/auth/schema/architecture; low blast radius;
+correctness mechanically checkable via `checks` + `tests`.
 
 ## Dashboard (`web/`) — 4 tabs, mobile-first, dark
 Configure · Orchestration · Phone Vitals · History. Built with Vite+React+Tailwind,
@@ -145,7 +177,7 @@ telemetry strip, live token counter + tok/s, idle "READY" state. PWA-friendly me
 - `sessions(id, prompt, started_at, completed_at, summary, stats_json)`
 - `tasks(id, session_id, title, file, language, assign, phone_id, runtime,
    state, status, tokens_in, tokens_out, duration_ms, tok_per_sec, fallback,
-   code, created_at, updated_at)`
+   code, gate_json, created_at, updated_at)`
 - `phones(id, name, first_seen)` — logical phones (stable id by name)
 - `phone_stats(phone_id, session_id, tasks_completed, tokens_in, tokens_out,
    avg_tok_per_sec)`

@@ -7,6 +7,14 @@ shows the orchestration in real time. Headline: on-device inference on the
 Snapdragon Hexagon **NPU**, with an automatic per-phone **CPU fallback** so the
 demo never breaks.
 
+Two properties keep it honest and cheap: the routing plan is **human-approved**
+on the dashboard before any phone runs (phone/task/model/ETA/confidence table
+with per-task toggles), and every phone output passes a **deterministic gate**
+on the hub — structure, syntax, regex checks, and Claude-authored unit tests
+run in a sandbox — so Claude only pulls a snippet into context when the gate
+fails, and gate-passed files are written to disk without ever entering its
+context.
+
 > Runs entirely on a laptop + Wi-Fi hotspot. No cloud hosting; the only cloud
 > dependency is the Claude API.
 
@@ -52,20 +60,25 @@ npm run ws-tap
 
 ## Running the demo with Claude Code
 
-The demo project lives in `demo/target-app/` (a small Habit Tracker) and is
-pre-wired with the `/sisyphus` skill and `.mcp.json`. Open Claude Code there and
-run the `/sisyphus` prompt from `demo/DEMO_SCRIPT.md`. Claude decomposes the
-task, offloads leaf work to the phones, integrates the results, and prints a
-summary. Everything on the Orchestration tab is real.
+The `/sisyphus` skill (`.claude/skills/sisyphus/SKILL.md`) and `.mcp.json` are
+wired at the repo root. Open Claude Code in `sisyphus/` (or copy those two into
+any project you want to demo against) and run the `/sisyphus` prompt from
+`demo/DEMO_SCRIPT.md`. Claude decomposes the
+task (baking a small unit-test suite into each phone task), proposes a routing
+plan you approve on the Orchestration tab, the phones generate and self-check
+through the gate, Claude writes the gate-passed files to disk (`sisyphus_apply`)
+and handles anything that failed or you rerouted, then prints a summary.
+Everything on the Orchestration tab is real.
 
 ## Layout
 ```
 sisyphus/
   server/   orchestrator (Express + ws + SQLite), task engine, mock fleet
-  mcp/      MCP stdio server (4 tools) — thin client over HTTP to :4100
+  mcp/      MCP stdio server (6 tools) — thin client over HTTP to :4100
   web/      dashboard + worker view (Vite + React + Tailwind)
   phone/    Termux setup.sh / telemetry.sh (CPU) + npu/ adb deploy (NPU)
-  demo/     Habit Tracker target app + DEMO_SCRIPT.md
+  demo/     DEMO_SCRIPT.md (run sheet)
+  .claude/  /sisyphus skill (SKILL.md) — pairs with .mcp.json at the root
   docs/     prd · architecture · rules · phases · design · memory
 ```
 

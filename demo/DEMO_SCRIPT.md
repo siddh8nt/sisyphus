@@ -1,24 +1,27 @@
 # Sisyphus — Demo Run Sheet
 
-Demo target: `demo/target-app/` (a working Habit Tracker), pre-wired with the
-`/sisyphus` skill + `.mcp.json`. Runs entirely on the laptop + hotspot; the only
-cloud dependency is the Claude API.
+Demo target: **any project you open Claude Code in.** The `/sisyphus` skill and
+`.mcp.json` are wired at the sisyphus repo root — open Claude Code there, or copy
+`.mcp.json` + `.claude/skills/sisyphus/` into the project you want to demo
+against (gate-passed files are written into that project's working directory).
+Runs entirely on the laptop + hotspot; the only cloud dependency is the Claude API.
 
 ## The seed prompt
-Open Claude Code **inside `demo/target-app/`** and paste:
+Open Claude Code in the demo target project and paste a prompt shaped like:
 
 ```
-/sisyphus Add a streak-statistics feature to the habit tracker: show each habit's
-current streak and longest streak. Include a stats API endpoint that computes the
-streak math, a date-utility module (formatDate + relativeDay), a stats-card CSS
+/sisyphus Add a stats feature to this project: a stats module that computes the
+core numbers, a date-utility module (formatDate + relativeDay), a stats-card CSS
 component, unit tests for the date utility, and wire it all into the UI.
 ```
 
+Any feature with 3+ small, self-contained leaf files works — that's what routes
+to the phones.
+
 ## Expected split (~3 phone + ~2 Claude)
-**Phones (leaf, self-contained):** `public/dateUtil.js`, `public/stats-card.css`,
-`test/dateUtil.test.js`.
-**Claude keeps (integration/logic):** `GET /api/stats` streak math, and wiring
-into `index.html` + `app.js`.
+**Phones (leaf, self-contained):** the date-utility module, the CSS component,
+the date-utility unit tests.
+**Claude keeps (integration/logic):** the stats math, and wiring it into the UI.
 
 Verified on the mock fleet: 3 on-device / 2 cloud / 1+ NPU, ~4s, repeatable.
 
@@ -29,8 +32,9 @@ Laptop:
       `netsh advfirewall firewall add rule name="Sisyphus" dir=in action=allow protocol=TCP localport=4100`
 - [ ] `npm start` running in `sisyphus/` (orchestrator on :4100).
 - [ ] Dashboard open on a spare screen → **Configure** tab shows the QR + phones.
-- [ ] Claude Code open in `demo/target-app/`.
-- [ ] `git -C demo/target-app checkout -- habits.json` (reset any toggles).
+- [ ] Claude Code open in the demo target project (with `.mcp.json` + the
+      `/sisyphus` skill wired — automatic if that's the sisyphus repo root).
+- [ ] Target project reset to a clean state (`git checkout -- .` in it).
 
 Phones (each):
 - [ ] On the laptop hotspot Wi-Fi.
@@ -55,9 +59,11 @@ Configure shows phones **before** starting for the full effect.
 - **1:00 — Parallel work.** 3 phone cards stream code simultaneously; NPU/CPU
   badges; the worker views on the phones light up. Flip to **Phone Vitals** to
   show live battery/temp/CPU and the NPU badge.
-- **1:40 — Integration.** Claude reviews the returned snippets and wires the
-  feature in; the app still runs. Show the scoreboard: on-device vs cloud, NPU
-  count, **cloud tokens saved**.
+- **1:40 — Integration.** Each phone output passes the deterministic gate
+  (checks + baked-in tests — point at the gate log on a worker view); Claude
+  writes gate-passed files straight to disk without re-reading them and wires
+  the feature in; the app still runs. Show the scoreboard: on-device vs cloud,
+  NPU count, **cloud tokens saved**.
 - **2:10 — The number.** Read the final summary table in the terminal. "Every one
   of those tokens is work the cloud didn't do."
 - **2:30 — History.** Open the **History** tab — the session is logged with its
@@ -77,6 +83,7 @@ Configure shows phones **before** starting for the full effect.
   `npm run mock-fleet`.
 
 ## Reset between runs
-- `git -C demo/target-app checkout -- .` to revert integrated files + habit toggles.
+- `git checkout -- .` (plus delete any new generated files) in the target project
+  to revert the integrated feature.
 - Each `/sisyphus` run starts a fresh session automatically (even if a prior run
   didn't finish cleanly).

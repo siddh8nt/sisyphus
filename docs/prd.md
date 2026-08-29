@@ -36,20 +36,35 @@ the safety net is an automatic per-phone CPU fallback so the demo never breaks.
 ## Demo flow narrative
 1. Laptop runs `npm start`; dashboard open on a 4th screen; phones on the laptop
    hotspot, each showing its worker view fullscreen (idle "READY").
-2. Driver types `/sisyphus "Add a streak-statistics feature…"` into Claude Code
-   inside the demo Habit Tracker project.
+2. Driver types a `/sisyphus "Add a stats feature…"` prompt into Claude Code
+   opened in the demo target project (the skill + `.mcp.json` are wired at the
+   sisyphus repo root; copy both into any other project to demo against it).
 3. Claude calls `sisyphus_status`, narrates its decomposition (`sisyphus_log`),
-   splits the work: ~3 leaf tasks to phones, ~2 kept for itself.
-4. Phones light up in parallel — streaming code on their worker views and on the
-   Orchestration tab, telemetry moving on Vitals, NPU/CPU badges showing.
-5. Claude reviews returned snippets, integrates everything, the app still runs.
-6. Final summary table prints: who did what, tokens, time, on-device vs cloud,
-   cloud tokens saved, NPU-accelerated count.
+   splits the work: ~3 leaf tasks to phones (each with baked-in unit tests), ~2
+   kept for itself.
+4. A **routing plan** appears on the Orchestration tab for the driver to approve
+   — a table of phone / task / model / ETA / confidence / test-count with a
+   per-task PHONE↔CLAUDE toggle. Nothing runs on a phone until it's approved
+   (auto-approves after 120s so an untended demo still proceeds).
+5. Phones light up in parallel — streaming code on their worker views and on the
+   Orchestration tab, telemetry moving on Vitals, NPU/CPU badges showing. Each
+   output passes a **deterministic gate** on the hub (structure, syntax, regex
+   checks, and the baked-in tests); the per-test log shows on each worker view.
+6. Claude writes the gate-passed files straight to disk (never re-reading them),
+   handles anything that failed the gate or the driver rerouted, the app still
+   runs.
+7. Final summary table prints: who did what, gate result, tokens, time, on-device
+   vs cloud, cloud tokens saved, NPU-accelerated count.
 
 ## Success criteria for the demo
 - ≥3 phones (or mock phones) generating in parallel, visibly.
 - At least one task completes on a real phone's NPU (Phase 6.5+), badged NPU.
 - Fallback is seamless and narrated when a phone/NPU drops.
+- The driver approves the routing plan on the dashboard before dispatch; a task
+  can be toggled back to Claude and the run honors it.
+- Every phone output is gated on the hub (checks + baked-in tests); gate-passed
+  code is applied to disk without Claude re-reading it, so the token savings are
+  real and not just "phone did the typing."
 - Real reasoning, real tokens, real telemetry — zero fabrication.
 - Runs entirely on laptop + hotspot; only cloud dependency is the Claude API.
 

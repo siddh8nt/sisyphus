@@ -32,10 +32,12 @@ export function RuntimeBadge({ runtime }) {
 // Monochrome state glyphs — state is shown by glyph, not color.
 const STATE_GLYPH = {
   planned: ['○', 'var(--text-faint)'],
+  awaiting_approval: ['◇', 'var(--text-faint)'],
   queued: ['○', 'var(--text-faint)'],
   dispatched: ['●', 'var(--signal)'],
   generating: ['●', 'var(--signal)'],
   validating: ['△', 'var(--text-faint)'],
+  testing: ['△', 'var(--signal)'],
   retrying: ['△', 'var(--text-faint)'],
   completed: ['■', 'var(--text)'],
   failed: ['✕', 'var(--text-faint)'],

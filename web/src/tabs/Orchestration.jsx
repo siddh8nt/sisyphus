@@ -84,6 +84,105 @@ function PlanColumns({ plan }) {
   );
 }
 
+// Routing approval: Claude proposed this dispatch table; nothing runs on a
+// phone until the operator approves here. Toggling a row hands that task back
+// to Claude instead.
+function ApprovalTable({ approval }) {
+  const [toClaude, setToClaude] = useState({}); // taskId -> true when rerouted
+  const [busy, setBusy] = useState(false);
+  const rows = approval.tasks || [];
+  const reroutedCount = rows.filter((r) => toClaude[r.taskId]).length;
+
+  const approve = async () => {
+    setBusy(true);
+    const overrides = {};
+    for (const r of rows) if (toClaude[r.taskId]) overrides[r.taskId] = 'claude';
+    try {
+      await fetch('/api/session/approve', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ overrides }),
+      });
+    } catch {
+      setBusy(false); // hub unreachable — let the operator retry
+    }
+  };
+
+  return (
+    <div className="module">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+        <span className="text-[10px] tracking-[0.14em] uppercase">
+          <span className="inline-block w-2 h-2 mr-2" style={{ background: 'var(--signal)' }} />
+          Routing plan — awaiting your approval
+        </span>
+        <span className="text-[10px] text-faint tabular">{rows.length} task(s) → phones</span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px]" style={{ borderCollapse: 'collapse' }}>
+          <thead>
+            <tr className="text-[9px] tracking-[0.14em] uppercase text-faint">
+              {['Phone', 'Task', 'Model', 'ETA', 'Confidence', 'Tests', 'Run on'].map((h) => (
+                <th key={h} className="text-left font-normal px-3 py-2 border-b border-border-soft">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const claude = !!toClaude[r.taskId];
+              return (
+                <tr key={r.taskId} className="border-b border-border-soft last:border-b-0">
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <span className={claude ? 'text-faint line-through' : ''}>{r.phoneName}</span>{' '}
+                    {!claude && <RuntimeBadge runtime={r.runtime} />}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div>{r.title}</div>
+                    <div className="text-[9px] text-faint">{r.file}</div>
+                  </td>
+                  <td className="px-3 py-2 text-dim whitespace-nowrap">{claude ? 'claude' : r.model || '—'}</td>
+                  <td className="px-3 py-2 tabular whitespace-nowrap">{claude ? '—' : r.etaSec != null ? `~${r.etaSec}s` : '—'}</td>
+                  <td className="px-3 py-2 tabular whitespace-nowrap">{r.confidence != null ? `${r.confidence}%` : '—'}</td>
+                  <td className="px-3 py-2 tabular">{r.tests || 0}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => setToClaude((m) => ({ ...m, [r.taskId]: !m[r.taskId] }))}
+                      disabled={busy}
+                      className="text-[9px] tracking-[0.12em] px-2 py-1 border transition-colors"
+                      style={
+                        claude
+                          ? { background: 'var(--text)', color: 'var(--ink)', borderColor: 'var(--text)' }
+                          : { borderColor: 'var(--border)', color: 'var(--text)' }
+                      }
+                      title="Toggle who runs this task"
+                    >
+                      {claude ? '□ CLAUDE' : '■ PHONE'}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center justify-between px-3 py-2.5 border-t border-border">
+        <span className="text-[9px] tracking-[0.14em] uppercase text-faint">
+          Auto-approves in {Math.round((approval.timeoutMs || 120000) / 1000)}s if untouched
+        </span>
+        <button
+          onClick={approve}
+          disabled={busy}
+          className="text-[10px] tracking-[0.14em] px-4 py-2"
+          style={{ background: 'var(--text)', color: 'var(--ink)', opacity: busy ? 0.5 : 1 }}
+        >
+          {busy ? 'DISPATCHING…' : `APPROVE · ${rows.length - reroutedCount} → PHONES${reroutedCount ? ` · ${reroutedCount} → CLAUDE` : ''}`}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TaskCard({ task, output }) {
   const streaming = task.state === 'generating';
   return (
@@ -105,12 +204,19 @@ function TaskCard({ task, output }) {
       </pre>
       {task.result && (
         <div className="text-[10px] text-faint mt-2 tabular">
-          {task.fallback ? (
+          {task.status === 'reassigned' ? (
+            <span>□ rerouted to Claude by operator</span>
+          ) : task.fallback ? (
             <span>✕ fell back to Claude</span>
           ) : (
             <>
               {task.tokensOut} tok · {task.tokPerSec} tok/s · {(task.durationMs / 1000).toFixed(1)}s
             </>
+          )}
+          {task.gate && (
+            <span className="ml-2">
+              · gate {task.gate.passed ? '■' : '✕'} {task.gate.checks.filter((c) => c.ok).length}/{task.gate.checks.length}
+            </span>
           )}
         </div>
       )}
@@ -165,6 +271,7 @@ export default function Orchestration() {
         </div>
       )}
       <ReasoningFeed reasoning={s.reasoning} />
+      {s.approval && !s.approval.resolved && <ApprovalTable key={s.approval.requestedAt} approval={s.approval} />}
       <PlanColumns plan={s.plan} />
       {phoneTasks.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-border border border-border">

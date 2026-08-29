@@ -3,6 +3,24 @@
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done (checks passed). Record the
 date each phase passes.
 
+> **PHASE 10 — DELEGATION BRAIN UPGRADE (2026-08-30).** Reworked the skill +
+> orchestration pipeline around three new properties, all verified end-to-end
+> against the mock fleet (15/15 E2E checks + MCP stdio smoke both green) and in
+> the live dashboard: (1) **human-approved routing** — `delegate` now assigns
+> phones then blocks on a dashboard approval table (phone/task/model/ETA/
+> confidence/tests, per-row PHONE↔CLAUDE toggle, approve button; auto-approves
+> after 120s so headless never deadlocks). (2) **Deterministic gate replaces
+> "Claude reviews every snippet"** — every output runs structure→syntax→regex
+> `checks`→Claude-authored unit `tests` in a sandboxed child Node process
+> (`server/lib/test-runner.js`, 20s/5s timeouts); per-check log streams as
+> `task_gate`, persists to `tasks.gate_json`, renders on the worker view (web +
+> kiosk app). (3) **Token efficiency** — `delegate` returns code ONLY for
+> gate-failed/fallback/reassigned tasks; two new MCP tools, `sisyphus_apply`
+> (writes gate-passed files to disk, code never enters context, path-guarded)
+> and `sisyphus_fetch` (one task on demand). SKILL.md rewritten to a full spec
+> (tools table, capacity-budgeted decomposition, baked-in tests). MCP now 6
+> tools. Dashboard rebuilt. **Not committed** (per standing rule); see the
+> matching memory.md entry. Full detail in Phase 10 below.
 > **PHASE 9 APP DEVICE-PROVEN (2026-08-30).** `worker view v3.apk` installed on a
 > real iQOO 15: GLITCH login (real Silkscreen) + worker view render correctly in
 > full GLITCH fonts; CONNECT resolves name→phoneId over `GET /api/phones`. Fixed
@@ -347,3 +365,59 @@ we get here (likely: laptop Claude Code mirrored to the phone via Office Kit).
 browser tab); device telemetry registers phone use + Office Kit; core demo
 still passes untouched.
 **Status:** [ ] FUTURE (after core is solid) · **Passed:** —
+
+---
+
+## Phase 10 — Delegation brain: approval + deterministic gate + token efficiency
+Rework of the `/sisyphus` skill and orchestration pipeline so delegation is
+smarter, human-supervised, and genuinely token-efficient. Backend + web + MCP +
+docs; real phones untouched (the gate runs entirely on the hub).
+
+Tasks:
+- [x] **Skill rewrite** (`demo/target-app/.claude/skills/sisyphus/SKILL.md` at
+  the time; relocated 2026-08-30 to repo root `.claude/skills/sisyphus/SKILL.md`
+  when `demo/target-app/` was removed):
+  tools table; capacity-budgeted decomposition (≤120-line outputs vs the 3B
+  model's 4096-ctx/1200-token cap); the core filter — *if you can't write tests
+  that make you trust the output without reading it, the task is too big*;
+  baked-in tests + `estTokens`/`confidence` per task; apply-don't-read
+  integration.
+- [x] **Human-approved routing.** `delegate` assigns least-loaded, emits
+  `approval_pending` with the routing table, and blocks until
+  `POST /api/session/approve {overrides}` (or auto-approves after 120s,
+  `APPROVAL_TIMEOUT_MS`). `overrides[taskId]='claude'` marks a task `reassigned`
+  and returns it to Claude undispatched. Table also rides the WS `hello`
+  snapshot so a mid-wait dashboard shows it. ETA = `estTokens ÷ tok/s`
+  (session-observed per phone, else per-runtime defaults) + fixed overhead.
+- [x] **Deterministic gate** (`server/lib/validate.js` structured per-check
+  output + new `server/lib/test-runner.js`): structure → syntax → regex
+  `checks` → baked-in unit `tests` executed in a sandboxed child Node process
+  (20s overall / 5s per test; ESM+CJS handled; JS targets only, others report a
+  skipped row). One retry feeds the exact failing checks back. Per-check log
+  `{kind,name,ok,detail?,durationMs?}` emitted as `task_gate`, persisted to
+  `tasks.gate_json` (schema + migration), rendered on the worker view.
+- [x] **Token efficiency.** `delegate` result includes `code` only for
+  gate-failed/fallback/reassigned tasks; new MCP tools `sisyphus_apply` (writes
+  gate-passed files to disk without returning contents, path-traversal guarded)
+  and `sisyphus_fetch` (one task's code + full gate log, on demand). MCP now 6
+  tools; `DELEGATE_TIMEOUT_MS` raised to 600s to cover approval + generation.
+- [x] **Web** (`store.js`, `Orchestration.jsx`, `WorkerView.jsx`, `ui.jsx`):
+  `ApprovalTable` component, `GateLog` panel on the worker view, new
+  `awaiting_approval`/`testing` state glyphs, gate result on task cards, and
+  `approval_pending`/`approval_resolved`/`task_gate` reducers.
+- [x] **Docs:** architecture.md (gate + approval + 6-tool contract + schema),
+  README (intro + demo flow + tool count), SKILL.md, prd.md demo flow, design.md
+  component inventory.
+
+**Acceptance:** approval blocks dispatch and a toggle reroutes a task to Claude;
+gate passes clean code / fails on a real assertion diff and falls back;
+gate-passed code never returns through `delegate` but `apply` writes it to disk;
+per-test log visible on the worker view.
+**Status:** [x] PASSED (2026-08-30) — 15/15 E2E checks against the mock fleet
+(gate-pass with code withheld 5/5, gate-fail with real `'2' !== 5` diff → retry
+→ fallback with salvageable code, operator reassignment, all WS events, stats),
+MCP stdio smoke (6 tools; `apply` wrote the file, code confirmed NOT returned;
+`fetch` returned code+gate), and a browser walkthrough (approval table, toggle,
+approve, worker view `■ PASSED 5/5` with named per-test rows). Dashboard
+rebuilt (`vite build`, clean). **Not committed** (standing rule). ·
+**Passed:** 2026-08-30

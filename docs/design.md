@@ -62,10 +62,20 @@ status colors. Feels like mission control.
 ### 2. Orchestration (centerpiece)
 - Left/top: **reasoning feed** — terminal-styled log, source badges
   Claude(terracotta)/Sisyphus(violet), monospace, auto-scroll.
+- **Routing approval table (Phase 10):** appears after Claude proposes a plan and
+  blocks dispatch until the operator approves. One row per phone-delegated task —
+  phone + runtime badge, task + file, model, ETA (`~Ns`), confidence (`N%`),
+  baked-in test count, and a per-row toggle (■ PHONE ↔ □ CLAUDE). Footer: a
+  hint that it auto-approves after the timeout, and an APPROVE button that
+  counts the split (`N → PHONES · M → CLAUDE`). Follows the current GLITCH
+  tokens (`--signal` for the live square, inverted `--text`/`--ink` for the
+  active/approve controls); shown only while `approval && !approval.resolved`.
 - **Plan cards:** two columns — "On phones" (violet-tinted) vs "Claude keeps"
   (terracotta-tinted). Each card: title, file, rationale.
 - **Phone task cards:** live streaming output pane, animated state chip through
-  the lifecycle, runtime badge (NPU/CPU), retry/fallback highlighted amber/red.
+  the lifecycle (incl. `awaiting_approval`, `testing`), runtime badge (NPU/CPU),
+  retry/fallback highlighted; a `gate ■/✕ n/total` summary once the gate runs;
+  `□ rerouted to Claude by operator` when reassigned.
 - **Sticky footer scoreboard:** on-device vs cloud counts, NPU-accelerated count,
   tokens saved, elapsed timer.
 
@@ -83,6 +93,11 @@ status colors. Feels like mission control.
 - Assigned task title.
 - Streaming monospace output pane (auto-scroll, cyan glow while active).
 - Telemetry strip: battery, temp, CPU, mem — big numerals.
+- **Gate · test log (Phase 10):** below the streaming pane, a compact panel of
+  the deterministic-gate rows for the active task — one line per check
+  (structure / syntax / regex / test) with a ■/✕ mark, `kind` tag, name, and
+  per-test duration; header shows `■ PASSED n/total` or `✕ FAILED`. This is the
+  same page the kiosk app's WebView renders, so the log shows on-device too.
 - Live token counter + tok/s, large.
 - Idle: calm centered "READY — waiting for tasks" + slow pulse dot.
 - PWA-friendly `<meta>` + manifest so "Add to Home Screen" launches like an app.
@@ -94,4 +109,5 @@ status colors. Feels like mission control.
 ## Component inventory
 `StatusDot`, `RuntimeBadge`, `StateChip`, `Sparkline`, `CopyButton`, `QrPanel`,
 `ReasoningFeed`, `PlanCard`, `TaskCard`, `PhoneVitalCard`, `Scoreboard`,
-`Tabs`, `Stat` (label+big value).
+`Tabs`, `Stat` (label+big value), `ApprovalTable` (routing approval, Phase 10),
+`GateLog` (worker-view gate/test log, Phase 10).

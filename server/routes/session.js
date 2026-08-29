@@ -27,6 +27,21 @@ sessionRouter.post('/delegate', async (req, res) => {
   }
 });
 
+// Dashboard: approve the pending routing plan. overrides maps taskId ->
+// 'claude' for rows the operator toggled to Claude; everything else dispatches
+// to its assigned phone.
+sessionRouter.post('/approve', (req, res) => {
+  const { overrides } = req.body || {};
+  const r = engine.approvePlan(overrides || {});
+  if (r.error) return res.status(409).json(r);
+  res.json(r);
+});
+
+// MCP: full task dump (code + gate) for sisyphus_apply / sisyphus_fetch.
+sessionRouter.get('/tasks', (_req, res) => {
+  res.json({ tasks: engine.listSessionTasks() });
+});
+
 sessionRouter.post('/complete', (req, res) => {
   const { summary, filesChanged } = req.body || {};
   res.json(engine.completeSession(summary || '', filesChanged || []));

@@ -56,19 +56,28 @@ function syntaxCheck(code, file) {
  * @param {string} rawText  full model response
  * @param {string} file     target filename (drives syntax check)
  * @param {string[]} [checks] regex strings that must all match
- * @returns {{ok:boolean, code?:string, error?:string}}
+ * @returns {{ok:boolean, code?:string, error?:string, checks:Array<{kind:string,name:string,ok:boolean,detail?:string}>}}
+ *   `checks` is the per-check log the deterministic gate shows in the worker
+ *   view: one row per structural/syntax/regex check, pass or fail.
  */
 export function validate(rawText, file, checks = []) {
-  const fenceCount = (String(rawText).match(/```/g) || []).length;
-  if (fenceCount === 0) return { ok: false, error: 'no fenced code block in output' };
-  if (fenceCount % 2 !== 0) return { ok: false, error: 'unbalanced code fences' };
+  const rows = [];
+  const fail = (error) => ({ ok: false, error, checks: rows });
 
-  const code = extractFirstFencedBlock(rawText);
-  if (!code || !code.trim()) return { ok: false, error: 'empty code block' };
-  if (PROSE_MARKERS.test(code.trim())) return { ok: false, error: 'prose inside code block' };
+  const fenceCount = (String(rawText).match(/```/g) || []).length;
+  let structureError = null;
+  if (fenceCount === 0) structureError = 'no fenced code block in output';
+  else if (fenceCount % 2 !== 0) structureError = 'unbalanced code fences';
+
+  const code = structureError ? null : extractFirstFencedBlock(rawText);
+  if (!structureError && (!code || !code.trim())) structureError = 'empty code block';
+  if (!structureError && PROSE_MARKERS.test(code.trim())) structureError = 'prose inside code block';
+
+  rows.push({ kind: 'structure', name: 'single fenced code block', ok: !structureError, detail: structureError || undefined });
+  if (structureError) return fail(structureError);
 
   const syn = syntaxCheck(code, file);
-  if (syn) return { ok: false, error: syn };
+  rows.push({ kind: 'syntax', name: `syntax (${path.extname(String(file || '')) || 'unknown'})`, ok: !syn, detail: syn || undefined });
 
   for (const c of checks || []) {
     let re;
@@ -77,8 +86,15 @@ export function validate(rawText, file, checks = []) {
     } catch {
       continue; // ignore malformed check regexes
     }
-    if (!re.test(code)) return { ok: false, error: `required pattern not found: /${c}/` };
+    rows.push({
+      kind: 'regex',
+      name: `pattern /${c}/`,
+      ok: re.test(code),
+      detail: re.test(code) ? undefined : 'required pattern not found',
+    });
   }
 
-  return { ok: true, code };
+  const firstFail = rows.find((r) => !r.ok);
+  if (firstFail) return { ok: false, error: firstFail.detail ? `${firstFail.name}: ${firstFail.detail}` : firstFail.name, code, checks: rows };
+  return { ok: true, code, checks: rows };
 }

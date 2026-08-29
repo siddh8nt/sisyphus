@@ -9,6 +9,14 @@ export const HEALTHCHECK_INTERVAL_MS = 5_000; // how often we poll each endpoint
 export const HEALTHCHECK_TIMEOUT_MS = 2_500; // per health-check request timeout
 export const OFFLINE_SWEEP_MS = 2_000; // how often we re-evaluate online/offline status
 export const MODEL_CALL_TIMEOUT_MS = 120_000; // hard timeout on a generation call
+export const APPROVAL_TIMEOUT_MS = 120_000; // routing plan auto-approves if the operator doesn't act
+export const TEST_RUN_TIMEOUT_MS = 20_000; // whole baked-in test harness run, per attempt
+export const PER_TEST_TIMEOUT_MS = 5_000; // one baked-in test case inside the harness
+
+// ETA model for the approval table: estTokens / tok-per-sec + fixed overhead.
+// Session-observed tok/s per phone wins; these are the cold-start defaults.
+export const ETA_TOK_PER_SEC = { npu: 20, cpu: 8 };
+export const ETA_OVERHEAD_SEC = 4;
 
 // Worker model sampling (Ollama option names; OpenAI adapter maps num_predict->max_tokens)
 export const WORKER_SAMPLING = {

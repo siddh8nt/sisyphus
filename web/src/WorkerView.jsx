@@ -70,6 +70,7 @@ export default function WorkerView({ phoneId }) {
           >
             {output || '…'}
           </pre>
+          {active.gate && <GateLog gate={active.gate} />}
           <div className="flex items-baseline gap-7 border-t border-border-soft pt-3 tabular">
             <span>
               <span className="pixel text-[30px]">{active.result ? active.tokensOut : output ? output.split(/\s+/).length : 0}</span>
@@ -92,6 +93,33 @@ export default function WorkerView({ phoneId }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Deterministic-gate log for the current task: every structure/syntax/regex
+// check and every baked-in test case the hub ran against this phone's output.
+function GateLog({ gate }) {
+  const passed = gate.checks.filter((c) => c.ok).length;
+  return (
+    <div className="border border-border-soft">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border-soft">
+        <span className="text-[8px] tracking-[0.14em] uppercase text-faint">Gate · Test log</span>
+        <span className="text-[10px] tabular" style={{ color: gate.passed ? 'var(--signal)' : 'var(--text)' }}>
+          {gate.passed ? '■ PASSED' : '✕ FAILED'} {passed}/{gate.checks.length}
+        </span>
+      </div>
+      <div className="scroll-y max-h-32">
+        {gate.checks.map((c, i) => (
+          <div key={i} className="flex items-baseline gap-2 px-3 py-1 border-b border-border-soft last:border-b-0 text-[10px]">
+            <span style={{ color: c.ok ? 'var(--signal)' : 'var(--text)' }}>{c.ok ? '■' : '✕'}</span>
+            <span className="text-[8px] tracking-[0.1em] uppercase text-faint w-14 shrink-0">{c.kind}</span>
+            <span className="text-dim truncate">{c.name}</span>
+            {c.durationMs != null && <span className="text-faint tabular ml-auto shrink-0">{c.durationMs}ms</span>}
+            {!c.ok && c.detail && <span className="text-faint truncate">— {c.detail}</span>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

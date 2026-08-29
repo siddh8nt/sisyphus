@@ -78,9 +78,10 @@ telemetry (10% of the score).
 ---
 
 ## Part E — Run the demo
-Open **Claude Code inside `demo/target-app/`** and paste the `/sisyphus` prompt
-from `demo/DEMO_SCRIPT.md`, watching the dashboard. Reset between runs with
-`git -C demo/target-app checkout -- .`.
+Open **Claude Code at the sisyphus repo root** (the `/sisyphus` skill +
+`.mcp.json` are wired there — or copy both into any project you want to demo
+against) and paste the `/sisyphus` prompt from `demo/DEMO_SCRIPT.md`, watching
+the dashboard. Reset between runs with `git checkout -- .` in the target project.
 
 ---
 

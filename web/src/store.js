@@ -10,6 +10,7 @@ let state = {
   session: null, // {id, prompt, startedAt, completed}
   reasoning: [], // {source, text, ts}
   plan: null, // {tasks:[...]}
+  approval: null, // {tasks:[...rows], timeoutMs, requestedAt, resolved, auto?}
   tasks: {}, // taskId -> {taskId, title, file, state, phoneId, phoneName, runtime, detail, ...result}
   outputs: {}, // taskId -> streamed text
   stats: null, // final session stats
@@ -40,6 +41,7 @@ function resetSession(id, prompt, ts) {
     session: { id, prompt, startedAt: ts, completed: false },
     reasoning: [],
     plan: null,
+    approval: null,
     tasks: {},
     outputs: {},
     stats: null,
@@ -50,7 +52,14 @@ function reduce(msg) {
   const { type, payload, ts } = msg;
   switch (type) {
     case 'hello':
-      return { ...state, phones: payload.phones || [] };
+      return {
+        ...state,
+        phones: payload.phones || [],
+        // A dashboard opened mid-wait still renders the pending approval table.
+        approval: payload.approval
+          ? { ...payload.approval, requestedAt: ts, resolved: false }
+          : state.approval,
+      };
     case 'phone_update': {
       const phones = state.phones.slice();
       const i = phones.findIndex((p) => p.phoneId === payload.phoneId);
@@ -75,6 +84,20 @@ function reduce(msg) {
     }
     case 'plan':
       return { ...state, plan: payload };
+    case 'approval_pending':
+      return { ...state, approval: { ...payload, requestedAt: ts, resolved: false } };
+    case 'approval_resolved':
+      return {
+        ...state,
+        approval: state.approval
+          ? { ...state.approval, resolved: true, auto: payload.auto, overrides: payload.overrides }
+          : null,
+      };
+    case 'task_gate': {
+      const prev = state.tasks[payload.taskId] || { taskId: payload.taskId };
+      const tasks = { ...state.tasks, [payload.taskId]: { ...prev, gate: payload.gate } };
+      return { ...state, tasks };
+    }
     case 'task_state': {
       const prev = state.tasks[payload.taskId] || { taskId: payload.taskId };
       const tasks = { ...state.tasks, [payload.taskId]: { ...prev, ...payload } };

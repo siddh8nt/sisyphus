@@ -7,6 +7,7 @@ import { PORT, WEB_DIST } from './config.js';
 import { log } from './lib/log.js';
 import { attachBus, setSnapshotProvider } from './bus.js';
 import * as registry from './registry.js';
+import * as engine from './engine.js';
 import { phonesRouter } from './routes/phones.js';
 import { sessionRouter, sessionsReadRouter, devRouter } from './routes/session.js';
 import { configRouter } from './routes/config.js';
@@ -87,7 +88,9 @@ export function startServer() {
   const app = createApp();
   const server = http.createServer(app);
   attachBus(server);
-  setSnapshotProvider(registry.snapshot);
+  // Snapshot includes any routing plan still awaiting approval, so a dashboard
+  // opened mid-wait renders the approval table immediately.
+  setSnapshotProvider(() => ({ ...registry.snapshot(), approval: engine.pendingApproval() }));
   registry.startRegistry();
   server.listen(PORT, () => {
     log.ok(`orchestrator listening on http://localhost:${PORT}`);

@@ -12,6 +12,13 @@ db.pragma('journal_mode = WAL');
 
 const schema = fs.readFileSync(path.join(import.meta.dirname, 'schema.sql'), 'utf8');
 db.exec(schema);
+// Migration for DBs created before the deterministic gate existed (CREATE TABLE
+// IF NOT EXISTS won't add columns to an existing table).
+try {
+  db.exec('ALTER TABLE tasks ADD COLUMN gate_json TEXT');
+} catch {
+  /* column already exists */
+}
 log.ok('db ready', DB_PATH);
 
 // --- Prepared statements -------------------------------------------------
@@ -33,17 +40,18 @@ const stmts = {
   upsertTask: db.prepare(
     `INSERT INTO tasks (id, session_id, title, file, language, assign, phone_id, phone_name,
         runtime, state, status, tokens_in, tokens_out, duration_ms, tok_per_sec, fallback,
-        code, created_at, updated_at)
+        code, gate_json, created_at, updated_at)
      VALUES (@id, @sessionId, @title, @file, @language, @assign, @phoneId, @phoneName,
         @runtime, @state, @status, @tokensIn, @tokensOut, @durationMs, @tokPerSec, @fallback,
-        @code, @createdAt, @updatedAt)
+        @code, @gateJson, @createdAt, @updatedAt)
      ON CONFLICT(id) DO UPDATE SET
         title=excluded.title, file=excluded.file, language=excluded.language,
         assign=excluded.assign, phone_id=excluded.phone_id, phone_name=excluded.phone_name,
         runtime=excluded.runtime, state=excluded.state, status=excluded.status,
         tokens_in=excluded.tokens_in, tokens_out=excluded.tokens_out,
         duration_ms=excluded.duration_ms, tok_per_sec=excluded.tok_per_sec,
-        fallback=excluded.fallback, code=excluded.code, updated_at=excluded.updated_at`
+        fallback=excluded.fallback, code=excluded.code, gate_json=excluded.gate_json,
+        updated_at=excluded.updated_at`
   ),
   listTasksForSession: db.prepare(
     `SELECT * FROM tasks WHERE session_id = @sessionId ORDER BY created_at ASC`
@@ -103,6 +111,7 @@ export const store = {
       tokPerSec: t.tokPerSec ?? 0,
       fallback: t.fallback ? 1 : 0,
       code: t.code ?? null,
+      gateJson: t.gateJson ?? null,
       createdAt: t.createdAt ?? Date.now(),
       updatedAt: Date.now(),
     });

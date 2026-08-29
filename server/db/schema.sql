@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   tok_per_sec  REAL DEFAULT 0,
   fallback     INTEGER DEFAULT 0,
   code         TEXT,
+  gate_json    TEXT,           -- deterministic gate result: {passed, checks:[...]}
   created_at   INTEGER NOT NULL,
   updated_at   INTEGER NOT NULL,
   FOREIGN KEY (session_id) REFERENCES sessions(id)

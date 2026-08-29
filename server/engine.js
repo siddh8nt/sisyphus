@@ -8,10 +8,13 @@ import { emit, setSession, getSession } from './bus.js';
 import { log } from './lib/log.js';
 import * as registry from './registry.js';
 import { generate } from './lib/worker-client.js';
-import { validate } from './lib/validate.js';
+import { validate, extractFirstFencedBlock } from './lib/validate.js';
+import { runTests } from './lib/test-runner.js';
 import { buildWorkerPrompt } from './prompts/build.js';
+import { APPROVAL_TIMEOUT_MS, ETA_TOK_PER_SEC, ETA_OVERHEAD_SEC } from './config.js';
 
 let session = null; // active session
+let approvalWaiter = null; // {rows, resolve} while a routing plan awaits the operator
 
 // --- reasoning + session -------------------------------------------------
 export function logReasoning(text, source = 'sisyphus') {
@@ -93,6 +96,7 @@ function persist(task) {
     tokPerSec: task.tokPerSec,
     fallback: task.fallback,
     code: task.code,
+    gateJson: task.gate ? JSON.stringify(task.gate) : null,
     createdAt: task.createdAt,
   });
 }
@@ -109,6 +113,11 @@ export async function delegate({ tasks = [], keep = [], prompt } = {}) {
     language: t.language || null,
     spec: t.spec || '',
     checks: t.checks || [],
+    tests: Array.isArray(t.tests) ? t.tests : [],
+    estTokens: Number(t.estTokens) || 0,
+    confidence: t.confidence != null ? Math.max(0, Math.min(100, Number(t.confidence) || 0)) : null,
+    etaSec: null,
+    gate: null,
     signatures: t.signatures || null,
     allowImports: t.allowImports || null,
     assign: null,
@@ -150,10 +159,28 @@ export async function delegate({ tasks = [], keep = [], prompt } = {}) {
     t.assign = best.phoneId;
     t.phoneId = best.phoneId;
     t.phoneName = best.name;
-    persist(t);
+    t.etaSec = computeEta(t, best);
+    setState(t, 'awaiting_approval', { phoneId: best.phoneId });
   }
 
   emitPlan(taskObjs, keep);
+
+  // Routing must be approved by the operator on the dashboard before any
+  // dispatch. Blocks here until POST /api/session/approve (or auto-approves
+  // after APPROVAL_TIMEOUT_MS so a headless run never deadlocks).
+  const { overrides, auto } = await waitForApproval(taskObjs, online);
+  if (auto) {
+    logReasoning(`No operator action within ${Math.round(APPROVAL_TIMEOUT_MS / 1000)}s — routing plan auto-approved.`);
+  }
+  for (const t of taskObjs) {
+    if (overrides[t.id] === 'claude') {
+      const q = queues.get(t.phoneId);
+      const i = q ? q.indexOf(t) : -1;
+      if (i >= 0) q.splice(i, 1);
+      reassignToClaude(t);
+    }
+  }
+  emit('approval_resolved', { overrides, auto });
 
   // Run each phone's queue sequentially; phones run concurrently.
   await Promise.all(
@@ -165,6 +192,80 @@ export async function delegate({ tasks = [], keep = [], prompt } = {}) {
   );
 
   return taskObjs.map(result);
+}
+
+// --- routing approval -----------------------------------------------------
+function computeEta(task, phone) {
+  const agg = session?.phoneAgg.get(phone.phoneId);
+  const runtime = registry.pickEndpoint(phone)?.runtime || 'cpu';
+  const observed = agg && agg.tasks > 0 ? agg.tokPerSecSum / agg.tasks : 0;
+  const tps = observed > 0 ? observed : ETA_TOK_PER_SEC[runtime] || ETA_TOK_PER_SEC.cpu;
+  const est = task.estTokens > 0 ? task.estTokens : 400;
+  return Math.max(1, Math.round(est / tps + ETA_OVERHEAD_SEC));
+}
+
+function approvalRows(taskObjs, online) {
+  const byId = new Map(online.map((p) => [p.phoneId, p]));
+  return taskObjs.map((t) => {
+    const endpoint = byId.has(t.phoneId) ? registry.pickEndpoint(byId.get(t.phoneId)) : null;
+    return {
+      taskId: t.id,
+      title: t.title,
+      file: t.file,
+      phoneId: t.phoneId,
+      phoneName: t.phoneName,
+      model: endpoint?.model || null,
+      runtime: endpoint?.runtime || null,
+      etaSec: t.etaSec,
+      confidence: t.confidence,
+      estTokens: t.estTokens || null,
+      tests: (t.tests || []).length,
+    };
+  });
+}
+
+function waitForApproval(taskObjs, online) {
+  const rows = approvalRows(taskObjs, online);
+  emit('approval_pending', { tasks: rows, timeoutMs: APPROVAL_TIMEOUT_MS });
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      approvalWaiter = null;
+      resolve({ overrides: {}, auto: true });
+    }, APPROVAL_TIMEOUT_MS);
+    approvalWaiter = {
+      rows,
+      resolve: (overrides) => {
+        clearTimeout(timer);
+        approvalWaiter = null;
+        resolve({ overrides: overrides || {}, auto: false });
+      },
+    };
+  });
+}
+
+/** Dashboard approval endpoint. overrides: {taskId: 'claude'} reroutes to Claude. */
+export function approvePlan(overrides = {}) {
+  if (!approvalWaiter) return { error: 'no routing plan awaiting approval' };
+  const rerouted = Object.values(overrides).filter((v) => v === 'claude').length;
+  logReasoning(
+    rerouted > 0
+      ? `Operator approved the routing plan (${rerouted} task(s) rerouted to Claude).`
+      : 'Operator approved the routing plan.'
+  );
+  approvalWaiter.resolve(overrides);
+  return { ok: true };
+}
+
+/** Pending approval table (for the WS hello snapshot), or null. */
+export function pendingApproval() {
+  return approvalWaiter ? { tasks: approvalWaiter.rows, timeoutMs: APPROVAL_TIMEOUT_MS } : null;
+}
+
+function reassignToClaude(task) {
+  task.status = 'reassigned';
+  task.fallback = true;
+  setState(task, 'fallback_claude', { phoneId: task.phoneId, detail: 'rerouted to Claude by the operator' });
+  emitResult(task);
 }
 
 function emitPlan(taskObjs, keep) {
@@ -214,10 +315,24 @@ async function runTask(task, phone) {
         onToken: (text) => emit('token', { taskId: task.id, phoneId: phone.phoneId, text }),
       });
 
+      // Deterministic gate: structure/syntax/regex checks, then the task's
+      // baked-in unit tests. Claude never reviews gate-passed code — the gate
+      // IS the review; Claude only pulls code into context when this fails.
       setState(task, 'validating', { phoneId: phone.phoneId });
       const v = validate(out.text, task.file, task.checks);
+      task.code = v.code || extractFirstFencedBlock(out.text) || task.code;
+      let gate = { passed: v.ok, checks: v.checks };
 
-      if (v.ok) {
+      if (v.ok && (task.tests || []).length > 0) {
+        setState(task, 'testing', { phoneId: phone.phoneId, runtime: endpoint.runtime });
+        const tr = await runTests(v.code, task.file, task.tests);
+        gate = { passed: tr.passed, checks: [...v.checks, ...tr.results] };
+      }
+
+      task.gate = gate;
+      emit('task_gate', { taskId: task.id, phoneId: phone.phoneId, gate });
+
+      if (gate.passed) {
         task.code = v.code;
         task.tokensIn = out.tokensIn;
         task.tokensOut = out.tokensOut;
@@ -231,10 +346,11 @@ async function runTask(task, phone) {
         return;
       }
 
+      const gateError = describeGateFailure(gate) || v.error || 'gate failed';
       if (attempt === 0) {
-        logReasoning(`Task "${task.title}" failed validation on ${phone.name}: ${v.error}. Retrying once.`);
-        setState(task, 'retrying', { phoneId: phone.phoneId, detail: v.error });
-        validatorError = v.error;
+        logReasoning(`Task "${task.title}" failed the gate on ${phone.name}: ${gateError}. Retrying once.`);
+        setState(task, 'retrying', { phoneId: phone.phoneId, detail: gateError });
+        validatorError = gateError;
         setState(task, 'dispatched', { phoneId: phone.phoneId, runtime: endpoint.runtime });
         continue;
       }
@@ -262,6 +378,28 @@ function failToFallback(task) {
   task.fallback = true;
   setState(task, 'failed', { phoneId: task.phoneId });
   setState(task, 'fallback_claude', { phoneId: task.phoneId });
+}
+
+/** Compact one-line summary of the failing gate checks (for retry prompts + logs). */
+function describeGateFailure(gate) {
+  if (!gate || gate.passed) return null;
+  return gate.checks
+    .filter((c) => !c.ok)
+    .map((c) => (c.detail ? `${c.name}: ${c.detail}` : c.name))
+    .join('; ')
+    .slice(0, 600);
+}
+
+function gateSummary(gate) {
+  if (!gate) return null;
+  return {
+    passed: gate.passed,
+    checksPassed: gate.checks.filter((c) => c.ok).length,
+    checksTotal: gate.checks.length,
+    failed: gate.passed
+      ? undefined
+      : gate.checks.filter((c) => !c.ok).map((c) => ({ name: c.name, detail: c.detail })),
+  };
 }
 
 // --- stats ---------------------------------------------------------------
@@ -298,18 +436,66 @@ function emitResult(task) {
   });
 }
 
+/**
+ * MCP-facing result. Token-efficiency contract: `code` is included ONLY when
+ * Claude actually has to look at it (gate failed, fallback, or operator
+ * reassignment). Gate-passed code stays on the hub — Claude writes it to disk
+ * blind via sisyphus_apply, or pulls it explicitly via sisyphus_fetch.
+ */
 function result(task) {
+  const gateFailed = task.gate ? !task.gate.passed : false;
+  const needsCode = task.fallback || gateFailed;
   return {
     taskId: task.id,
     title: task.title,
     file: task.file,
     status: task.status,
-    code: task.code || undefined,
+    code: needsCode ? task.code || undefined : undefined,
+    gate: gateSummary(task.gate),
     tokensOut: task.tokensOut,
     phoneName: task.phoneName,
     runtime: task.runtime,
     fallback: task.fallback,
+    reassigned: task.status === 'reassigned' || undefined,
   };
+}
+
+/**
+ * Full task dump (code + gate) for the active session — or, if the session was
+ * already completed, the most recent stored one. Serves sisyphus_apply/fetch.
+ */
+export function listSessionTasks() {
+  const shape = (t) => ({
+    taskId: t.id,
+    title: t.title,
+    file: t.file,
+    status: t.status,
+    state: t.state,
+    phoneName: t.phoneName,
+    runtime: t.runtime,
+    fallback: !!t.fallback,
+    gate: t.gate || null,
+    code: t.code || null,
+    tokensOut: t.tokensOut || 0,
+  });
+  if (session) return [...session.tasks.values()].map(shape);
+  const last = store.listSessions(1)[0];
+  if (!last) return [];
+  return store.listTasksForSession(last.id).map((r) =>
+    shape({
+      id: r.id,
+      title: r.title,
+      file: r.file,
+      status: r.status,
+      state: r.state,
+      phoneName: r.phone_name,
+      runtime: r.runtime,
+      fallback: !!r.fallback,
+      gate: r.gate_json ? JSON.parse(r.gate_json) : null,
+      code: r.code,
+      tokensOut: r.tokens_out,
+    })
+  );
 }
 
 // --- complete ------------------------------------------------------------
