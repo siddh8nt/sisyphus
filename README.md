@@ -10,6 +10,10 @@ demo never breaks.
 > Runs entirely on a laptop + Wi-Fi hotspot. No cloud hosting; the only cloud
 > dependency is the Claude API.
 
+> **📱 At the venue / onboarding phones? → [docs/VENUE_RUNBOOK.md](docs/VENUE_RUNBOOK.md)** —
+> self-serve, no prior context needed. One laptop is the hub; teammates onboard
+> phones against its hotspot in parallel.
+
 ## Quickstart (no phones required — < 5 min)
 
 Requires **Node ≥ 20**. Works on Windows and Mac.
