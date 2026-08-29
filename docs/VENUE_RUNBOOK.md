@@ -84,3 +84,39 @@ from `demo/DEMO_SCRIPT.md`, watching the dashboard. Reset between runs with
 On github.com → repo → Settings → Collaborators → Add people. Or:
 `gh repo add-collaborator <user>` (or `gh api ...`). They then `git clone` and get
 this runbook + all scripts. Pull latest before the event: `git pull`.
+
+---
+
+## Continue development on another teammate's Claude Code
+Yes — any teammate can pick up the dev phases on their own machine + Claude Code.
+The **repo is the handoff**: all code, the plan, and the full decision log live in
+it. A fresh Claude Code session has NO memory of prior chats, so you hand it
+context via the committed docs.
+
+**Setup (once):**
+1. Accept the GitHub invite, then `git clone https://github.com/siddh8nt/sisyphus`
+   → `cd sisyphus` → `npm install` (needs Node ≥ 20).
+
+**Start a Claude Code session and tell it, verbatim:**
+> Read `docs/memory.md` (start with the LAST 2-3 entries — that's the current
+> state + plan), then `docs/phases.md`, then continue the next unchecked phase.
+> Follow `docs/rules.md`. Do NOT add any `Co-Authored-By: Claude` trailer to
+> commits (see the rule in memory.md) — commits are authored by me alone.
+
+That single message re-loads everything: what's done, what's next, and every
+locked decision (architecture, llama.cpp-for-NPU, Phase 9 app plan, etc.).
+
+**Coordination (avoid stepping on each other):**
+- **One person / one Claude session edits the repo at a time.** Concurrent edits
+  → merge conflicts.
+- `git pull` **before** you start; `git commit` + `git push` **often** (at every
+  green checkpoint) so the next person gets your work.
+- For parallel work, use branches + PRs: `git checkout -b feature/x` → push →
+  open a PR → merge.
+- The committed `docs/memory.md` is the source of truth across machines. (Claude's
+  *local* auto-memory does NOT travel between laptops — only the repo does.)
+
+**Cross-platform note:** server / web / MCP / phone `*.sh` scripts are
+cross-platform (Windows or Mac). The NPU deploy scripts are PowerShell
+(`phone/npu/*.ps1`, Windows-first); `adb` also exists on Mac/Linux if a teammate
+adapts them. The firewall step (Part A2) is Windows-only.
