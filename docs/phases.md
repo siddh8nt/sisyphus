@@ -3,6 +3,17 @@
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done (checks passed). Record the
 date each phase passes.
 
+> **PHASE 9 APP DEVICE-PROVEN (2026-08-30).** `worker view v3.apk` installed on a
+> real iQOO 15: GLITCH login (real Silkscreen) + worker view render correctly in
+> full GLITCH fonts; CONNECT resolves name→phoneId over `GET /api/phones`. Fixed
+> the long "post-login UI never updates" loop — two causes: (1) the demo hotspot
+> has no route to Google Fonts, so the WebView fell back to system mono; now the
+> 5 TTFs are self-hosted three ways (hub `web/public/fonts` + `@font-face`, native
+> `res/font`, and `assets/fonts` injected via `shouldInterceptRequest`); (2) stale
+> install/WebView cache masked new builds — added a `BUILD x.y` stamp + versionCode
+> bump + `?b=` cache-buster + `LOAD_NO_CACHE`. Notifications wired (JS→native
+> bridge) but not yet proven through a real task run on device. Full detail in
+> memory.md. **Committed 2026-08-30.**
 > **STATUS: AT THE VENUE, LIVE (2026-08-29). Phase 8 hardware acceptance PASSED.**
 > All 3 iQOOs onboarded (CPU) + NPU-deployed (v81). Real parallel run: 3/3 on
 > NPU, 574 cloud tokens saved, 16.7s, 0 fallback. NPU bundle BUILT.
@@ -25,7 +36,9 @@ date each phase passes.
 > but NPU died from idle (cleanly fell back to CPU), not revived.
 > **NEXT:** (1) re-establish the hub (same machine or new) + re-attach the 3
 > iQOOs · (2) Phase 7 real-phone prompt tuning · (3) rehearse the proven demo
-> prompt live · (4) Phase 9 native app, if time allows.
+> prompt live · (4) Phase 9 — fullscreen kiosk WebView wrapper around the
+> existing worker view (GenieX/Tier 3 dropped, no native UI rebuild), if time
+> allows.
 > **UI re-skin done (2026-08-29, siddh's machine).** Dashboard restyled to the
 > "GLITCH" design system (Silkscreen/JetBrains Mono, single-hue `--signal`
 > green, zero radius, monochrome glyph states) — pure visual change, verified
@@ -272,15 +285,49 @@ at `http://<hub-ip>:4100/worker/<name>`. This alone makes "an installed app is
 the phone's demo surface" true for the rubric with zero web-side changes.
 Inference (Ollama CPU / llama-server NPU via Termux) is completely untouched —
 the app never talks to the model, only displays the existing dashboard page.
+The WebView renders the live worker page, so it inherits the GLITCH *layout*
+(Silkscreen/JetBrains Mono, single-hue `--signal` green, zero radius) — but NOT
+the fonts "for free" (this assumption was wrong, see below): the demo hotspot has
+no route to Google Fonts, so the page fell back to system monospace on-device.
+Fixed by self-hosting the 5 TTFs three ways — served by the hub (`web/public/fonts`
++ `@font-face` in `index.css`, CDN `<link>` removed), bundled in `res/font/` for
+native views, and bundled in `assets/fonts/` and injected into the WebView via
+`shouldInterceptRequest` so `/fonts/*.ttf` resolve even if the server dist is stale
+or offline. Every native-chrome surface the WebView doesn't cover (splash, icon,
+status/nav bar, setup + reconnect screens) is styled with the same GLITCH tokens.
 
 **Prereq:** Android Studio + JDK + Android SDK on the laptop (adb already present).
 
 **Tasks:**
-- [ ] WALKING SKELETON FIRST (before anything else): app installs on the iQOO,
+- [x] WALKING SKELETON FIRST (before anything else): app installs on the iQOO,
   loads `/worker/<name>` fullscreen, looks identical to the current browser
-  worker view. Prove it on the real device before adding anything native.
-- [ ] Kiosk mode: hide system UI, keep screen awake (`FLAG_KEEP_SCREEN_ON`),
-  auto-reload on connection drop.
+  worker view. **Built + DEVICE-PROVEN (2026-08-30).** Project at `app/` (zero-dep
+  Java + framework `WebView`, no appcompat/Compose/Kotlin), `assembleDebug` →
+  `worker view v3.apk` (~880KB with bundled fonts; `com.sisyphus.worker`, minSdk
+  26, targetSdk 34, versionName 3.1/versionCode 2). Installed on a real iQOO 15:
+  login screen renders in real Silkscreen, worker view renders in full GLITCH
+  fonts, CONNECT resolves the phone name → phoneId via live `GET /api/phones`.
+  A `BUILD 3.1` stamp on the login screen + a `?b=<versionCode>` cache-buster on
+  the worker URL exist so a stale install/cache can never masquerade as the new
+  build again (root cause of the "post-login UI never changes" loop).
+- [x] Kiosk mode: hide system UI, keep screen awake (`FLAG_KEEP_SCREEN_ON`),
+  auto-reload on connection drop. Immersive-sticky, `(RECONNECTING)` overlay
+  retries every 3s on main-frame failure; long-press top-left corner reopens
+  setup. (Verify feel on device.)
+- [x] Match native chrome to the web GLITCH palette: splash screen (`--bg`
+  #0E0E0E background, Silkscreen wordmark), app icon, status bar color, and any
+  loading/reconnect screen use the same tokens as `web/src/index.css`
+  (`--bg`, `--signal` #3DDC84, `--text`) — no stock Android blue/Material look.
+  Done: framework Material-dark theme (`res/values/themes.xml` + `values-v31`
+  splash), `#0E0E0E` status/nav bar, green pixel-`S` adaptive icon, monospace-bold
+  wordmark on the setup/overlay screens (real Silkscreen only in the Web'd page).
+- [x] Phone notification on task assignment + generation start; tap opens the app.
+  JS→native bridge (`window.SisyphusNative`, `NativeBridge`/`Notifier`): the worker
+  page fires `assigned`/`generating`/`finished` on its own state transitions
+  (`dispatched`→`generating`→`completed`/`failed`); the app posts a single
+  heads-up notification (green-tinted pixel-`S` small icon) updated in place, tap
+  → `singleTask` KioskActivity to front. `POST_NOTIFICATIONS` requested at runtime.
+  Web change is guarded (no-op in a plain browser). Needs device proof.
 - [ ] (optional value-add) Native device telemetry via Android APIs
   (BatteryManager / PowerManager) → POST to the existing heartbeat endpoint,
   replacing `phone/telemetry.sh` + the Termux:API dependency. Motivation: the

@@ -17,6 +17,27 @@ export default function WorkerView({ phoneId }) {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
   }, [output]);
 
+  // Native kiosk bridge: fire a phone notification when this worker is assigned
+  // a task and when it starts generating. Guarded — no-op in a plain browser
+  // (window.SisyphusNative only exists inside the Android kiosk WebView).
+  const notifiedRef = useRef({});
+  useEffect(() => {
+    const bridge = typeof window !== 'undefined' ? window.SisyphusNative : null;
+    if (!bridge || !active) return;
+    const title = active.title || active.file || 'Worker task';
+    if (notifiedRef.current.taskId !== active.taskId) {
+      notifiedRef.current = { taskId: active.taskId, state: null };
+    }
+    if (notifiedRef.current.state === active.state) return;
+    notifiedRef.current.state = active.state;
+    try {
+      if (active.state === 'dispatched') bridge.assigned(title);
+      else if (active.state === 'generating') bridge.generating(title);
+      else if (active.state === 'completed') bridge.finished(title, true);
+      else if (active.state === 'failed') bridge.finished(title, false);
+    } catch (e) { /* bridge missing a method — ignore */ }
+  }, [active?.taskId, active?.state]);
+
   return (
     <div className="min-h-full flex flex-col">
       <div className="flex items-center justify-between px-5 py-4 border-b border-border">

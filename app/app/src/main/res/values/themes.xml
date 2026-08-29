@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Framework Material dark base (no appcompat dependency). GLITCH chrome:
+         near-black window/splash, light status icons, single-hue accent. -->
+    <style name="Theme.Sisyphus" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:colorBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">@color/signal</item>
+        <item name="android:textColor">@color/text</item>
+    </style>
+
+    <style name="Theme.Sisyphus.Kiosk" parent="Theme.Sisyphus">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>

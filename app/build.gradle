@@ -1,0 +1,4 @@
+// Root build file. Plugin versions pinned to what is cached locally (AGP 8.5.2).
+plugins {
+    id 'com.android.application' version '8.5.2' apply false
+}

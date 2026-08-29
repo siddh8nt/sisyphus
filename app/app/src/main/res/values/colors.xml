@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Mirrors web/src/index.css GLITCH tokens. -->
+<resources>
+    <color name="bg">#0E0E0E</color>
+    <color name="surface">#111111</color>
+    <color name="border">#3A3A36</color>
+    <color name="text">#EAE7E0</color>
+    <color name="text_faint">#8A8880</color>
+    <color name="signal">#3DDC84</color>
+    <color name="ink">#111111</color>
+</resources>

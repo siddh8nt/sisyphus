@@ -2,6 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted fonts — served locally by the orchestrator so they render over the
+   demo hotspot with no internet (the LAN has no route to Google Fonts). Same
+   families the app bundles natively (Silkscreen = .pixel, JetBrains Mono = body). */
+@font-face {
+  font-family: 'Silkscreen';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/silkscreen_regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Silkscreen';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/silkscreen_bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono_regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono_medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/jetbrainsmono_bold.ttf') format('truetype');
+}
+
 :root {
   --bg: #0e0e0e;
   --surface: #111111;

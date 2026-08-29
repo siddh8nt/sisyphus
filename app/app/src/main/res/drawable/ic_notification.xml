@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar small icon: white pixel-"S" silhouette (system tints it; the shade
+     accent is set to the signal green via Notification.setColor). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M5,3 h14 v3 h-14 z M5,6 h3 v3 h-3 z M5,9 h3 v3 h-3 z M5,12 h14 v3 h-14 z M16,15 h3 v3 h-3 z M16,18 h3 v3 h-3 z M5,21 h14 v3 h-14 z" />
+</vector>

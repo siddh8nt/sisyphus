@@ -800,3 +800,146 @@ by the human alone.
   the original plan (GenieX bring-up was already flagged "timeboxed" and never
   started). Not yet implemented — this entry documents the scope decision only;
   see `docs/phases.md` Phase 9 for the updated task list.
+
+## 2026-08-29 — Phase 9 walking skeleton BUILT: kiosk WebView app scaffolded at `app/`
+- **What shipped:** the native Android kiosk wrapper from the scope-cut plan is
+  scaffolded and building. Project at `sisyphus/app/` (Gradle, AGP 8.5.2, Gradle
+  8.9, JDK 21). `./gradlew :app:assembleDebug` → ~19KB `app-debug.apk`,
+  `com.sisyphus.worker`, label SISYPHUS, minSdk 26 / targetSdk 34.
+- **Zero external deps by design:** framework `android.app.Activity` + `WebView`
+  only — no appcompat, no Compose, no Kotlin. Keeps the build small and the only
+  network need is AGP's own Kotlin transitives on first build (everything else was
+  already in the local Gradle cache; a truly offline build fails on
+  `kotlin-stdlib/kotlin-reflect 1.9.20` which AGP 8.5.2 pulls).
+- **Structure:** `SetupActivity` (launcher) = GLITCH-styled form for hub `IP:PORT`
+  (prefilled `192.168.137.1:4100` via `buildConfigField`) + phone name, saved to
+  SharedPreferences (`Prefs.java`). `KioskActivity` = fullscreen immersive WebView
+  → `http://<hub>:<port>/worker/<name>`, `FLAG_KEEP_SCREEN_ON`, `(RECONNECTING)`
+  overlay that reloads every 3s on main-frame failure, long-press top-left corner
+  to reopen setup.
+- **Native chrome matches web GLITCH tokens** (not stock Material): Material-dark
+  framework theme, `#0E0E0E` window/status/nav + splash (`values-v31`), green
+  pixel-`S` adaptive icon (`#3DDC84` on `#0E0E0E`), monospace-bold wordmark
+  approximating Silkscreen (real Silkscreen renders inside the WebView'd page).
+  `usesCleartextTraffic=true` — the worker view is plain-http on the LAN.
+- **Toolchain note:** real SDK is `~/AppData/Local/Android/Sdk` (platform
+  android-34, build-tools 34.0.0/36.0.0, adb works). `/c/Program Files/Android`
+  only holds Android Studio, not the SDK packages.
+- **NOT yet proven on device:** no iQOO was attached at build time. Remaining:
+  `adb install -r`, launch, confirm the worker view renders fullscreen and looks
+  identical to the browser, and check kiosk feel (immersive, keep-awake, reconnect).
+- **Termux unchanged:** app only replaces the last manual step of
+  `docs/PHONE_SETUP.md` (open worker URL in Chrome). Inference plumbing identical.
+
+## 2026-08-29 — Phase 9: per-phone task notifications via JS↔native bridge
+- **Feature:** each kiosk phone posts a notification the instant a task is
+  assigned to it and again when generation starts; tapping it opens/foregrounds
+  the app. Requested by the user on top of the walking skeleton.
+- **Design (bridge, not native polling):** the worker page already tracks its own
+  task state, so the app doesn't re-derive it. `KioskActivity` exposes
+  `window.SisyphusNative` (`NativeBridge.java`, `@JavascriptInterface`). `WorkerView.jsx`
+  fires `assigned(title)` / `generating(title)` / `finished(title, ok)` on state
+  transitions (`dispatched` → `generating` → `completed`/`failed`), deduped by a
+  `notifiedRef` so each transition fires once. `Notifier.java` posts ONE reused
+  notification id (1001) updated in place — heads-up buzz on assignment only
+  (`setOnlyAlertOnce`), green-tinted (`setColor(#3DDC84)`) white pixel-`S` small
+  icon (`ic_notification.xml`). Tap → `PendingIntent` to `KioskActivity`
+  (`launchMode=singleTask`) so it comes to front instead of relaunching.
+- **Web change is guarded:** the `window.SisyphusNative` calls no-op in a plain
+  browser, so the worker page is unchanged outside the app's WebView. This is the
+  first intentional web-side change to Phase 5's worker view (the scope-cut plan
+  assumed zero); it's additive and browser-safe. Requires `npm run build` in
+  `web/` so `web/dist` (served by the orchestrator) picks it up — done.
+- **Perms/manifest:** added `POST_NOTIFICATIONS` (requested at runtime in
+  `KioskActivity` on API 33+); `KioskActivity` now `singleTask`. Rebuilt APK
+  (~28KB) still builds; feature NOT yet proven on device.
+
+## 2026-08-30 — Phase 9 app: native chrome now uses the real web fonts + design system
+- **Change:** the two native screens (SetupActivity, KioskActivity reconnect
+  overlay) were approximating the GLITCH look with system `MONOSPACE`. Now they
+  use the **actual** web fonts, bundled in `res/font`: Silkscreen (400/700) for the
+  pixel display face, JetBrains Mono (400/500/700) for body — the same TTFs the web
+  loads from Google Fonts. `Type.java` exposes `pixel()/pixelBold()/mono()/
+  monoMedium()/monoBold()` via framework `getFont()` (minSdk 26) and a `dotField()`
+  tiling drawable matching web `.dotfield` (radial dots, 22px grid).
+- **Green-budget fix:** the CONNECT button was a full signal-green block, which
+  violates the web's signal-green budget (green only for live squares / caret /
+  tok-s). It's now an inverted `--text`/`--ink` block (like the active tab cell /
+  NPU badge); green is reserved for a 7px status square by the wordmark and the
+  pulsing 12px square on the reconnect overlay.
+- **Reconnect overlay** now mirrors the web idle/empty state exactly: dot-field bg,
+  pulsing signal square, `(RECONNECTING)` in real Silkscreen, wide-tracked micro
+  caption. Pulse cadence matches web `.pulse` (blink 1.4s, full on/off).
+- APK grew 30KB → ~430KB (bundled fonts). Still no external Gradle deps. Notification
+  text stays system-rendered (platform constraint) but green-tinted + pixel-S icon.
+
+## 2026-08-30 — CRITICAL demo fix: self-host web fonts (Google Fonts CDN dies on the LAN)
+- **Bug (found via phone screenshots):** the worker view rendered in system
+  monospace, NOT Silkscreen/JetBrains Mono, even though the native app login
+  screen (bundled fonts) looked correct. Root cause: `web/index.html` loaded fonts
+  from `fonts.googleapis.com`, and the demo hotspot has **no internet** → the CDN
+  fetch fails → the page falls back to `monospace`. This is a WEB bug, not an app
+  bug; it hits any browser on the phone too, and would have wrecked the whole
+  GLITCH look at the live venue.
+- **Fix:** self-host the fonts. Copied the 5 TTFs to `web/public/fonts/`, added 5
+  `@font-face` rules at the top of `web/src/index.css` (Silkscreen 400/700,
+  JetBrains Mono 400/500/700) pointing at `/fonts/*.ttf`, and REMOVED the Google
+  Fonts `<link>` + preconnects from `web/index.html`. Rebuilt `web/dist` — fonts
+  now ship in `dist/fonts/`, served by the orchestrator's `express.static`, so they
+  load over the LAN with zero internet. Verified in-browser: with the CDN link
+  gone, `(STANDBY)`/wordmark still render in Silkscreen (proof they come from
+  `/fonts/`).
+- **No new APK / no server restart needed:** `express.static` serves the rebuilt
+  dist live and asset filenames are content-hashed; the phone just reloads the
+  worker view (reopen the app). The existing installed APK is fine — the fix is
+  entirely server-side.
+- **Corrects the earlier wrong assumption** ("WebView renders the real page so it's
+  automatically consistent") in the 2026-08-29 walking-skeleton entry: it's only
+  consistent if the page's fonts actually load, which they didn't on the LAN.
+
+## 2026-08-30 — App-side font fix: WebView was showing a stale/cached page
+- **Why the web fix alone didn't fix the app:** KioskActivity is `singleTask`, so
+  reopening just brings the existing instance to front — the WebView never
+  re-fetched and kept the pre-rebuild (Google-Fonts, system-mono fallback) page.
+  Cache made it worse.
+- **App fixes (need reinstall):** (1) `shouldInterceptRequest` serves `/fonts/*.ttf`
+  from the APK's own `assets/fonts/` — the GLITCH fonts now render in the WebView
+  regardless of server dist freshness, cache, or internet; (2) `LOAD_NO_CACHE` +
+  `clearCache(true)` so the page is never stale; (3) `onRestart()` reloads on
+  return so a re-deployed page always shows. Fonts are now bundled twice (res/font
+  for the native setup/overlay screens, assets/fonts for WebView interception) —
+  APK ~866KB; acceptable, could de-dupe later via createFromAsset.
+- Together with the web self-hosting fix, fonts are covered belt-and-suspenders.
+
+## 2026-08-30 -- Phase 9 app DEVICE-PROVEN + the "post-login UI never changes" loop, solved
+- **Symptom:** user reinstalled 4x; the login screen took the new GLITCH design but
+  the post-login worker view "stayed exactly the same" (system mono, not Silkscreen).
+- **Root-caused by tracing every layer instead of rebuilding blind:**
+  1. Verified `web/dist` had the self-hosted `@font-face` + `/fonts/*.ttf` (200 OK
+     from the live hub), and the worker page renders pixel-perfect GLITCH in a
+     phone-sized browser -- so the SERVER was already correct.
+  2. Verified the previous APK's compiled `classes2.dex` really did contain
+     `shouldInterceptRequest`, `clearCache`, `SisyphusNative`, `onRestart` -- so the
+     APK code was correct too.
+  3. **The tests never ran against the fix:** hub telemetry showed all 3 phones last
+     connected ~17:56 the day before, but the font fix only reached the server at
+     00:24 that night. Every "try" saw the old page; the WebView also cached it. And
+     because every build so far shared versionName 0.1/versionCode 1, Android could
+     silently keep the old app on reinstall.
+- **Fix (build 3.1 / versionCode 2):** (a) `BUILD 3.1` stamp on the login screen =
+  instant proof of which build is actually running; (b) versionCode bump so new
+  builds replace old ones and stale APK files are refused; (c) `?b=<versionCode>`
+  appended to the worker URL = a cache key no old entry can answer; kept the prior
+  `LOAD_NO_CACHE` + asset-font interception.
+- **Proven on a real iQOO 15 (2026-08-30):** login in real Silkscreen, worker view
+  in full GLITCH fonts, CONNECT resolves name->phoneId via `GET /api/phones`. APK is
+  `worker view v3.apk` (~880KB), self-contained (fonts bundled), sent to the phones.
+- **Still open:** notifications (JS->native bridge) are wired but not yet fired
+  through a real task on-device (phones were offline/NPU down during this session).
+- **Lesson reinforced:** when a fix "doesn't work," verify it actually reached the
+  device before changing more code. Three layers were already correct; the bug was
+  freshness (cache + version identity + test timing), not the fix.
+- **Committed + pushed 2026-08-30:** `app/` (whole native project), the web font
+  changes (`web/index.html`, `web/src/index.css`, `web/src/WorkerView.jsx`,
+  `web/public/fonts/`), and docs. `demo/target-app/` deliberately NOT committed
+  (stays pristine for a fresh live demo).
