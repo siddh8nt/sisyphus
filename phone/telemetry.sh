@@ -9,7 +9,9 @@ PHONE_ID="$1"
 
 while true; do
   PCT=""; TEMP=""
-  BAT=$(termux-battery-status 2>/dev/null || true)
+  # `timeout` guards against termux-battery-status blocking on an ungranted
+  # permission dialog, which would otherwise freeze the whole heartbeat loop.
+  BAT=$(timeout 2 termux-battery-status 2>/dev/null || true)
   if [ -n "$BAT" ]; then
     PCT=$(printf '%s' "$BAT" | sed -n 's/.*"percentage": *\([0-9]*\).*/\1/p')
     TEMP=$(printf '%s' "$BAT" | sed -n 's/.*"temperature": *\([0-9.]*\).*/\1/p')

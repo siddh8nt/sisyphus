@@ -54,9 +54,14 @@ $run = "cd $dir && ulimit -c unlimited && " +
        "LD_LIBRARY_PATH=./lib ADSP_LIBRARY_PATH=./lib " +
        "GGML_HEXAGON_DEVICES=$HtpDevice GGML_HEXAGON_ARCH=$Arch " +
        "nohup ./bin/llama-server -m gguf/$Model -ngl 99 -c $Ctx " +
-       "--host 0.0.0.0 --port $Port > /data/local/tmp/llama-server.log 2>&1 &"
+       "--host 0.0.0.0 --port $Port > /data/local/tmp/llama-server.log 2>&1 </dev/null &"
 Write-Host "Starting llama-server ($Model, arch $Arch) on the NPU..." -ForegroundColor Cyan
-Adb shell $run
+# `</dev/null` detaches stdin so the adb shell returns instead of hanging on the
+# backgrounded server's inherited stdin pipe. Extra guard: bound the call so a
+# stubborn adb shell can't block the whole deploy — the server keeps running.
+$job = Start-Job { param($exe,$s,$cmd) if ($s) { & $exe -s $s shell $cmd } else { & $exe shell $cmd } } -ArgumentList $script:AdbExe, $Serial, $run
+Wait-Job $job -Timeout 15 | Out-Null
+Remove-Job $job -Force
 
 # Detect the phone's Wi-Fi IP (reachable over the hotspot).
 $ip = (Adb shell "ip route get 1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p'") -join ""

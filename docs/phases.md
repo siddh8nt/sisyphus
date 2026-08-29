@@ -3,14 +3,15 @@
 Legend: `[ ]` todo · `[~]` in progress · `[x]` done (checks passed). Record the
 date each phase passes.
 
-> **STATUS: AT THE VENUE, LIVE (2026-08-29).** iQOO phones in hand; hub
-> orchestrator running. Core (Phases 0-5) done+verified on mocks; Phase 6 kit,
-> 6.5 scripts, 7 mock-hardening done. **NPU bundle build still pending** (Docker
-> crashed; retry). See docs/VENUE_RUNBOOK.md for team onboarding.
-> **IMMEDIATE:** (1) hotspot ON + firewall rule (admin) -> (2) CPU-onboard all 3
-> iQOOs (unique --name; ~2GB pull each) -> (3) real /sisyphus run -> (4) NPU
-> bring-up (timeboxed) -> (5) Phase 9 native app only if time. Full plan + venue
-> state: **read the last two memory.md entries first.**
+> **STATUS: AT THE VENUE, LIVE (2026-08-29). Phase 8 hardware acceptance PASSED.**
+> All 3 iQOOs onboarded (CPU) + NPU-deployed (v81). Real parallel run: 3/3 on
+> NPU, 574 cloud tokens saved, 16.7s, 0 fallback. NPU bundle BUILT.
+> **CONTEXT SWITCH IN PROGRESS:** akshat's Claude Code hit its usage limit; dev
+> moving to siddh8nt's machine. **Read `docs/HANDOFF_2026-08-29.md` first**, then
+> the last ~4 memory.md entries.
+> **NEXT:** (1) chaos test → closes 6.5 · (2) controlled NPU-vs-CPU benchmark ·
+> (3) polished human /sisyphus run in Claude Code · (4) Phase 7 real-phone prompt
+> tuning · (5) Phase 9 native app. Vitals battery/temp deferred (Termux:API app).
 
 ---
 
@@ -145,8 +146,12 @@ Tasks:
   crash). Bundle has bin/llama-server + all HTP libs incl. libggml-htp-v81.so
   (iQOO 15); model Qwen2.5-Coder-3B-Instruct-Q4_0.gguf (1.83 GB, size+magic
   verified). adb r37.0.1 installed. See memory.md.
-- [ ] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
-- [ ] Benchmark NPU vs CPU tok/s + prefill → memory.md
+- [x] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
+  — DONE 2026-08-29, iqoo-1 (SM8850/v81): bundle+model pushed over USB,
+  llama-server on HTP0, NPU+CPU endpoints grouped, real code returned on NPU.
+- [~] Benchmark NPU vs CPU tok/s + prefill → memory.md
+  — first signal: NPU 9.6 tok/s > CPU 4.4-8.2 tok/s (uncontrolled). Controlled
+  identical-prompt bench still TODO.
 - [ ] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated
 
 **Acceptance:** full demo where a phone completes a task on Hexagon NPU (NPU
@@ -178,13 +183,18 @@ iQOO hardware).
 
 ## Phase 8 — iQOO day
 Tasks:
-- [ ] Per phone: join hotspot → Termux + Termux:API → one-liner `--name iqoo-N`
-- [ ] Then USB debugging + `deploy-npu.ps1` each
-- [ ] Full 3-real-phone rehearsal
+- [x] Per phone: join hotspot → Termux → one-liner `--name iqoo-N` (all 3 CPU
+  online; Termux:API APK still needed for battery/temp — see memory.md)
+- [x] Then USB debugging + `deploy-npu.ps1` each — all 3 iQOOs on NPU (v81),
+  each CPU+NPU healthy. deploy script fixed (adb-hang) so 2/3 registered hands-off.
+- [x] Full 3-real-phone rehearsal — TWO real runs: (a) mixed 1 NPU/2 CPU, 3
+  on-device/404 saved/23.2s; (b) **all 3 on NPU**, 3 on-device/3 NPU/574 saved/
+  16.7s, 0 fallback (2026-08-29).
 
 **Acceptance:** 3 iQOO online, full run, all three generating in parallel, max
 NPU badges (target 3).
-**Status:** [ ] · **Passed:** —
+**Status:** [x] PASSED (hardware orchestration: 3/3 NPU, parallel, real code).
+Polished human /sisyphus run in Claude Code still to demo. · **Passed:** 2026-08-29
 
 ---
 

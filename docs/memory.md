@@ -430,3 +430,89 @@ NEXT SESSION" item that was blocked on the hub's Docker crash.
 NPU-vs-CPU benchmark, chaos test. A OnePlus 13s (CPH2723, SM8750=8 Elite/v79)
 was attached but ONLY for USB internet tethering — deliberately NOT deployed to
 (wrong arch + it's the internet uplink). Do not deploy to it.
+
+## 2026-08-29 — FIRST REAL RUN ON 3 iQOO PHONES (off mocks!) + NPU LIVE
+On akshat's laptop as the hub (siddh's was down). Hotspot LAPTOP-OT574E8N,
+firewall opened, 3 iQOO 15 (SM8850 = Hexagon **v81**) onboarded.
+
+**NPU bring-up SUCCESS on iqoo-1:** deploy-npu.ps1 pushed the bundle+model over
+USB (1.83 GB in 58s), llama-server loaded the Q4_0 model with -ngl 99 on HTP0
+(v81) and served OpenAI on :8080. Direct test returned valid code in ~2s. NPU +
+CPU endpoints grouped under iqoo-1, both healthy, activeRuntime=npu.
+
+**Full parallel delegate through the real MCP server → 3 real phones, 0 fallback:**
+- iqoo-1 **NPU**: dateUtil.js, 160 tok, 16.6s, **9.6 tok/s** — correct padStart date fmt
+- iqoo-2 CPU: stats-card.css, 54 tok, 12.2s, 4.4 tok/s
+- iqoo-3 CPU: dateUtil.test.js, 190 tok, 23.1s, 8.2 tok/s
+- Stats: 3 on-device / 1 cloud / 1 NPU / **404 cloud tokens saved** / 23.2s wall.
+- REAL qwen2.5-coder output, passed validation (node --check + checks). The test
+  file used jest `expect` (small-model quirk) — caught by the review step, not a
+  system bug.
+**First real NPU-vs-CPU signal: NPU 9.6 tok/s > CPU 4.4-8.2 tok/s.** (Not yet a
+controlled bench — different task sizes; run identical-prompt bench next.)
+
+### Bugs found + fixed live (both committed-worthy):
+1. **telemetry.sh froze the heartbeat.** `termux-battery-status` BLOCKS on an
+   ungranted permission dialog (doesn't error), so `|| true` never fires and the
+   loop stalls before its first POST → phone shows offline despite a healthy
+   endpoint → task engine won't dispatch to it. FIX: `timeout 2
+   termux-battery-status`. Phones now go online (battery/temp 0 until the
+   Termux:API APK is installed + permission granted; cpu load 0 too — Android 16
+   SELinux blocks /proc/loadavg for the unprivileged Termux app, while
+   /proc/meminfo is allowed so MEM is real).
+2. **deploy/start-npu.ps1 hung** on `adb shell "nohup ... &"` — adb doesn't
+   return while the backgrounded server holds the inherited stdin pipe. Deploy
+   stalled after "Starting llama-server" and never registered the NPU endpoint
+   (had to register it by hand this time). FIX: add `</dev/null` + wrap the adb
+   shell in a Start-Job with a 15s Wait-Job guard so the deploy always proceeds
+   to poll+register (llama-server keeps running regardless).
+
+### Known live-demo risk: heartbeat fragility
+Android kills backgrounded Termux, stopping telemetry.sh → phone flips offline →
+no task dispatch. Keep Termux foreground OR set Termux battery = Unrestricted on
+each phone. Re-running the setup one-liner relaunches telemetry (idempotent).
+
+### Telemetry cosmetics (NOT the rubric's device-telemetry 25%, which is Office Kit):
+Battery/temp need the **Termux:API APK** (com.termux.api) — only the `termux-api`
+CLI package was installed, not the app. Install the APK from the SAME source as
+Termux (signatures must match), grant permission. iqoo-1 ground truth via adb:
+51%, 32.0C.
+
+### STILL TODO (Phase 6.5 / 8):
+- NPU on iqoo-2 + iqoo-3 (deploy-npu.ps1 -Name iqoo-N -Serial <s>; hang fixed).
+- Controlled NPU-vs-CPU benchmark (identical prompt) → real pitch stat.
+- Chaos test: start-npu.ps1 -Stop mid-run → seamless CPU fallback, narrated.
+- Polished human /sisyphus run in Claude Code (demo/target-app) for the demo.
+- Mock fleet stopped so the real run used only iQOOs; restart with npm run
+  mock-fleet if you want the dashboard populated when phones are away.
+
+## 2026-08-29 — ALL 3 iQOOs ON NPU (Phase 8 hardware acceptance PASSED)
+iqoo-2 + iqoo-3 NPU deployed cleanly with the fixed deploy-npu.ps1 (auto IP-detect
++ poll + register, no hang, no manual step). All 3 phones: CPU+NPU both healthy,
+activeRuntime=npu.
+- iqoo-2 NPU @192.168.137.225:8080, iqoo-3 NPU @192.168.137.105:8080.
+- **Full run, all 3 on NPU in parallel, 0 fallback:** iqoo-1 160 / iqoo-2 70 /
+  iqoo-3 344 tok; 3 on-device / 3 NPU / **574 cloud tokens saved / 16.7s**.
+- Speed signal holds: all-NPU run 16.7s vs the earlier mixed-CPU run 23.2s.
+- deploy-npu.ps1 fix (adb `</dev/null` + Start-Job 15s guard) validated on 2
+  phones back-to-back — the phone-swap flow (unplug prev, it keeps serving over
+  Wi-Fi; plug next; deploy by -Serial) works smoothly with the OnePlus still
+  attached as a 2nd adb device.
+- Remaining: controlled NPU-vs-CPU bench (identical prompt), chaos test
+  (start-npu.ps1 -Stop → CPU fallback), Termux:API APK for battery/temp, and the
+  polished human /sisyphus run in Claude Code for the actual presentation.
+
+## 2026-08-29 — CONTEXT SWITCH to siddh8nt's machine (akshat usage limit)
+Full handoff written to **docs/HANDOFF_2026-08-29.md** — read it first on the new
+machine, then these last entries, then phases.md. Summary:
+- Phase 8 hardware acceptance PASSED: 3 iQOOs, all on NPU (v81), real parallel
+  run 3/3 NPU / 574 tok saved / 16.7s / 0 fallback.
+- iQOO serials: iqoo-1=10BFBM0AU7001GP, iqoo-2=10BFAT1U6A000XP, iqoo-3=10BFBJ0SQJ001GG.
+- On-device NPU bundle + model persist; new machine can `start-npu.ps1` per phone
+  (no 2 GB re-push) once phones are on its USB + hotspot.
+- `phone/npu/bundle/` is gitignored (~2 GB) — copy from akshat's laptop or
+  rebuild via build-npu.ps1 + Docker.
+- Vitals battery/temp DEFERRED (needs Termux:API app; sysfs+dumpsys SELinux-
+  blocked on Android 16). Cosmetic, not the rubric telemetry.
+- NEXT on new machine: chaos test (closes 6.5) → controlled NPU-vs-CPU bench →
+  polished human /sisyphus run in Claude Code → Phase 7 prompt tuning → Phase 9.
