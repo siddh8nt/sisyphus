@@ -69,7 +69,21 @@ export function createApp() {
   return app;
 }
 
+// A crashing orchestrator mid-`/sisyphus` is a showstopper: one unhandled
+// rejection (a dead WS socket, an abandoned MCP call, a SQLite throw) would
+// otherwise take the whole hub — and its in-memory phone registry — down.
+// Log and keep serving instead; individual requests are still guarded upstream.
+function installCrashGuards() {
+  process.on('unhandledRejection', (reason) => {
+    log.err('unhandledRejection (kept alive):', reason?.stack || reason);
+  });
+  process.on('uncaughtException', (err) => {
+    log.err('uncaughtException (kept alive):', err?.stack || err);
+  });
+}
+
 export function startServer() {
+  installCrashGuards();
   const app = createApp();
   const server = http.createServer(app);
   attachBus(server);

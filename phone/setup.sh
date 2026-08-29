@@ -66,7 +66,7 @@ echo "[6/6] starting telemetry ..."
 curl -s "$ORCH/telemetry.sh" >"$HOME/.sisyphus-telemetry.sh"
 # stop any previous telemetry loop for idempotent re-runs
 pkill -f "sisyphus-telemetry.sh" 2>/dev/null || true
-nohup sh "$HOME/.sisyphus-telemetry.sh" "$PHONE_ID" >/dev/null 2>&1 &
+nohup sh "$HOME/.sisyphus-telemetry.sh" "$PHONE_ID" "$NAME" "$MODEL" >/dev/null 2>&1 &
 
 echo ""
 echo "== $NAME is ONLINE =="
