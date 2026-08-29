@@ -516,3 +516,15 @@ machine, then these last entries, then phases.md. Summary:
   blocked on Android 16). Cosmetic, not the rubric telemetry.
 - NEXT on new machine: chaos test (closes 6.5) → controlled NPU-vs-CPU bench →
   polished human /sisyphus run in Claude Code → Phase 7 prompt tuning → Phase 9.
+
+## 2026-08-29 — Vitals battery/temp FIXED on all 3 iQOOs
+Installed the F-Droid Termux:API app (com.termux.api, versionCode 1002 = v0.53.0)
+via `adb install -r` on all 3 phones (the GitHub-signed one failed signature
+match — installed Termux is F-Droid-signed). All 3 now report real battery+temp
+(iqoo-1 51%/32.7C, iqoo-2 46%/33.5C, iqoo-3 74%/37.1C). No code change — the
+`termux-api` CLI package was already installed; only the companion APK was
+missing. Running telemetry.sh picked it up within one 3s tick, no restart.
+Phone-side install → survives the hotspot switch to siddh's machine.
+CPU load still "—": Android 16 SELinux blocks /proc/loadavg for unprivileged
+Termux (dumpsys + sysfs also blocked). Not fixable without root; card renders
+"—" correctly. Not the rubric telemetry anyway (that's Office Kit).
