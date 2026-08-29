@@ -186,22 +186,48 @@ NPU badges (target 3).
 
 ---
 
-## Phase 9 — Phone-first native app + GenieX (hackathon rubric) [FUTURE]
+## Phase 9 — Native Android worker app (Tier 2 -> Tier 3) [FUTURE, LOCKED PLAN]
 Additive layer, started ONLY once Phases 0-8 are bulletproof. Banks the iQOO
 Hackathon's phone-first score (25% device telemetry: creative phone use + Office
-Kit; "demo must run on the phone"). See prd.md "Strategy / roadmap" + memory.md.
-Tasks (draft):
-- [ ] Native Android worker-view app (Kotlin) — registers with orchestrator,
-  shows the worker view natively, reports telemetry.
-- [ ] GenieX SDK (`com.qualcomm.qti:geniex-android`) for on-NPU inference inside
-  the app (timeboxed; keep llama-server as the standing fallback).
-- [ ] Office Kit integration so the dashboard/demo runs on the phone (screen
-  mirror / bridge) — earns the Office Kit 10%.
-- [ ] Add a phone-feature touch (voice input?) for the "creative phone use" 15%.
-- [ ] Clarify the "run Claude Code on the phone" demo mechanic (Claude Code is a
-  CLI, not the Claude mobile app — decide the actual on-phone demo surface).
+Kit; "demo must run on the phone"). Decision: **skip the WebView tier; build the
+native app (Tier 2), then swap inference in-process (Tier 3).** See prd.md
+"Strategy / roadmap" + the 2026-08-29 decision log in memory.md.
 
-**Acceptance:** demo runs on the iQOO phone; device telemetry registers phone
-use + Office Kit; NPU inference in-app (or via llama-server) works; core demo
-still passes.
+**Design (fixed):**
+- The **app owns the endpoint**: a tiny in-app HTTP server (Ktor/NanoHTTPD) that
+  the orchestrator dispatches to. Inference goes through a swappable interface:
+  `interface InferenceEngine { generate(prompt, onToken) }` with
+  `LlamaServerEngine` (proxies to the on-phone llama-server = Tier 2, proven) and
+  `EmbeddedEngine` (GenieX in-process = Tier 3). Orchestrator never changes; Tier
+  3 = swap one class; if GenieX fights us, flip back to LlamaServerEngine.
+- Engine stays llama.cpp until Tier 3. GenieX is timeboxed.
+
+**Prereq:** Android Studio + JDK + Android SDK on the laptop (adb already present).
+
+**Tier 2 tasks (do first):**
+- [ ] WALKING SKELETON FIRST (before UI polish): app installs on the iQOO ->
+  registers as the phone's endpoint -> proxies one request to the local
+  llama-server -> streams a token back -> reports battery/thermal. Prove the pipes
+  on the real device.
+- [ ] In-app HTTP endpoint + `InferenceEngine` interface + `LlamaServerEngine`.
+- [ ] Native worker-view UI (Jetpack Compose): big name, streaming code pane,
+  telemetry strip, token counter + tok/s, idle READY. Legible at 1.5m.
+- [ ] Native device telemetry via Android APIs (BatteryManager / thermal / CPU) ->
+  heartbeat to orchestrator (replaces telemetry.sh for app phones).
+- [ ] One phone-feature for "creative phone use" 15% (e.g. voice-to-task via
+  SpeechRecognizer, or camera-QR to join).
+- [ ] Office Kit so the demo/dashboard runs on the phone -> Office Kit 10%.
+
+**Tier 3 tasks (after Tier 2 works, timeboxed):**
+- [ ] `EmbeddedEngine` via GenieX (`com.qualcomm.qti:geniex-android`) - in-process
+  NPU inference. Swap it in; keep LlamaServerEngine as the standing fallback.
+- [ ] Verify Qwen2.5-Coder Q4_0 (or Llama-3.2-3B fallback) runs on v81 in-app.
+
+**Open question:** the "run Claude Code on the phone" demo mechanic - Claude Code
+is a CLI, not the Claude mobile app. Decide the actual on-phone agent surface when
+we get here (likely: laptop Claude Code mirrored to the phone via Office Kit).
+
+**Acceptance:** demo runs on the iQOO phone; device telemetry registers phone use
++ Office Kit; the app is the endpoint and streams real inference (llama-server at
+Tier 2, GenieX at Tier 3); core demo still passes untouched.
 **Status:** [ ] FUTURE (after core is solid) · **Passed:** —
