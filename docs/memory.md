@@ -601,3 +601,54 @@ The prefill/TTFT gap is the more dramatic number: the Hexagon NPU dispatches
 and starts generating ~11x faster than CPU on the same prompt, on top of a
 ~2x faster decode rate. Combined, a real coding task returns roughly 2-3x
 faster wall-clock on NPU vs CPU on the same phone.
+
+## 2026-08-29 — Session checkpoint (context switch prep, siddh's machine)
+Wrapping this session for a context switch. Current live state, for whoever
+(or whichever fresh Claude Code session) picks this up next:
+
+**Orchestrator:** running (`npm start`, background job on this machine) at
+`http://192.168.137.1:4100`. Hotspot is ON, sharing from Wi-Fi. Firewall rule
+"Sisyphus" (TCP 4100 inbound) is in place.
+
+**Fleet right now:**
+- iqoo-1: online, **NPU DIED** (llama-server not responding — almost
+  certainly killed by phone sleep/idle, the documented fragility), auto
+  fell back to `activeRuntime=cpu` cleanly with 0 manual intervention. NOT
+  currently on USB — needs a replug + `phone/npu/start-npu.ps1 -Name iqoo-1
+  -Serial 10BFBM0AU7001GP` to revive the NPU (no re-push needed, bundle is
+  intact on-device).
+- iqoo-2: online, cpu+npu both healthy, activeRuntime=npu.
+- iqoo-3: online, cpu+npu both healthy, activeRuntime=npu.
+- Serials: iqoo-1=10BFBM0AU7001GP, iqoo-2=10BFAT1U6A000XP,
+  iqoo-3=10BFBJ0SQJ001GG.
+
+**Phase status:**
+- Phases 0-5: done (mocks). Phase 6 (CPU onboarding): done, 3 iQOOs.
+- **Phase 6.5: CLOSED today.** Chaos test PASSED (NPU-kill→CPU takeover,
+  full-phone-drop→redistribution, both real hardware, both narrated/logged).
+  Controlled NPU-vs-CPU bench PASSED: avg 2.1x decode speedup, avg 11.2x
+  prefill/TTFT speedup (`server/scripts/bench.js`, full table above this
+  entry). This is the real pitch stat — supersedes the earlier uncontrolled
+  numbers.
+- Phase 7: mocks done; real-phone prompt tuning still TODO.
+- **Phase 8: PASSED** (hardware acceptance, real parallel runs, 0 fallback).
+- Phase 9 (native app): not started, locked until 0-8 fully bulletproof.
+
+**NEXT (priority order):**
+1. Polished human `/sisyphus` run: open Claude Code in `demo/target-app/`,
+   run the prompt from `demo/DEMO_SCRIPT.md`, watch the dashboard — this is
+   the actual presentation run. Reset between attempts with
+   `git -C demo/target-app checkout -- .`. Mock fleet is NOT running — only
+   real iQOOs should be online for this run.
+2. Phase 7 real-phone prompt tuning against real qwen output.
+3. Phase 9 native Android worker app (Tier 2 walking skeleton first, per the
+   locked plan — skip Tier 1/WebView, Tier 3/GenieX-embedded later).
+4. (Nice-to-have, not blocking) revive iqoo-1's NPU per above.
+
+**Repo state:** 2 unpushed commits ahead of `origin/main` (`7223e14` chaos
+test, `c0d4f9b` bench) — push pending user confirmation (ask once per
+session, per `docs/rules.md`).
+
+**Reminder for whoever resumes:** read this entry, then `docs/phases.md`
+banner, then `docs/rules.md`. **No `Co-Authored-By: Claude` trailer on any
+commit** — commits are authored by the human alone.

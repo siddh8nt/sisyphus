@@ -10,8 +10,12 @@ date each phase passes.
 > NPU-kill → health-check flip (~10s) → CPU takeover, narrated; full phone
 > drop (`am force-stop com.termux`) → graceful exclusion + redistribution, 0
 > cloud fallback. Controlled NPU-vs-CPU bench DONE: **avg 2.1x decode speedup,
-> avg 11.2x prefill/TTFT speedup** (real pitch stat, see memory.md). Fleet
-> restored, 3/3 online on NPU.
+> avg 11.2x prefill/TTFT speedup** (real pitch stat, see memory.md).
+> **CONTEXT SWITCH CHECKPOINT (2026-08-29):** read the last memory.md entry
+> first — it has live fleet state (iqoo-1's NPU died from idle/sleep and
+> auto-fell-back to CPU cleanly, not currently on USB; iqoo-2/iqoo-3 both
+> healthy on NPU), exactly what's running on this machine, and 2 unpushed
+> commits waiting on a push confirmation.
 > **NEXT:** (1) polished human /sisyphus run in Claude Code (demo/target-app)
 > · (2) Phase 7 real-phone prompt tuning · (3) Phase 9 native app.
 
