@@ -236,3 +236,34 @@ The **process** is identical anywhere; only a few values are laptop-specific.
 
 Everything else — starting the hub, the NPU cable-and-`start-npu.ps1` flow,
 verification — is unchanged.
+
+---
+
+## 9. Parking / teardown (safely taking the phones offline)
+
+The opposite of setup — how to shut things down between sessions. It's safe:
+the model and NPU bundle live in the phone's internal storage
+(`/data/local/tmp/llama.cpp/`) and survive Wi-Fi off, reboots, everything.
+There's nothing to uninstall and no state that can corrupt. Bringing them back
+is just §2 → §3 → §4 again.
+
+**Quick park (network only).** Turn off the Windows Mobile Hotspot (or Wi-Fi on
+each phone). The phones go `offline` in `/api/status`; the hub keeps running.
+Downside: `llama-server` + Ollama stay *running* on each phone, so they keep
+drawing battery and staying warm with nothing to do.
+
+**Full park (recommended — also stops the battery/heat drain).** On **each phone**,
+in Termux, stop the servers and release the wake-lock so the phone can sleep:
+```bash
+pkill -f llama-server; pkill ollama; pkill -f sisyphus-telemetry; termux-wake-unlock
+```
+Then turn off Wi-Fi / the hotspot. **Charge any low phone** while it's parked.
+
+> Alternative for NPU only: if a phone is cabled, `.\phone\npu\start-npu.ps1
+> -Name iqoo-1 -Serial 10BFBM0AU7001GP -Stop` kills just its llama-server. The
+> Termux `pkill` above is broader (also stops Ollama + telemetry) and needs no
+> cable, so it's the simpler teardown.
+
+**Bringing them back.** Nothing was uninstalled, so just follow the setup path:
+start the hub (§2), re-run the CPU one-liner on each phone (§3, idempotent —
+skips the download), then re-activate NPU per phone (§4).
