@@ -652,3 +652,83 @@ session, per `docs/rules.md`).
 **Reminder for whoever resumes:** read this entry, then `docs/phases.md`
 banner, then `docs/rules.md`. **No `Co-Authored-By: Claude` trailer on any
 commit** — commits are authored by the human alone.
+
+## 2026-08-29 — Polished human /sisyphus demo run: PROVEN on real hardware
+Ran the actual demo prompt from `demo/DEMO_SCRIPT.md` for real, end-to-end,
+against the live 3-iQOO fleet (iqoo-2/iqoo-3 on NPU, iqoo-1 on CPU — a genuine
+mixed-runtime run, not staged). Followed the `/sisyphus` skill exactly (status
+→ decompose → log reasoning → delegate → keep/integrate → complete).
+
+**Result: 5 tasks, 3 on-device / 2 cloud, 2 NPU-accelerated, 561 cloud tokens
+saved, ~5m11s wall clock.**
+- Phones (parallel): `public/dateUtil.js` (iqoo-3/NPU), `public/stats-card.css`
+  (iqoo-2/NPU), `test/dateUtil.test.js` (iqoo-1/CPU) — 0 fallback.
+- Claude kept: `GET /api/stats` streak-math endpoint (data-shape decision) +
+  wiring into `index.html`/`app.js` (cross-file integration).
+- **Review caught 2 real small-model bugs before integrating** (exactly what
+  skill step 6 is for): stats-card.css had a digit-transcription slip
+  (`#5aa0ad` instead of the spec'd `#9aa0ad`) and an invalid bare
+  `tabular-nums;` declaration (should be `font-variant-numeric: tabular-nums;`).
+  Both fixed by hand, not re-generated.
+- Verified for real, not just claimed: `node --check` clean on all 5 touched
+  files; `node --test test/dateUtil.test.js` → 3/3 pass; streak math
+  hand-verified correct against the actual `habits.json` data (meditate 5/5,
+  read 2/2, exercise 1/1, water 6/6); ran the live server and screenshotted
+  the rendered UI in-browser (dark theme intact, colors correct); confirmed
+  the click-guard (clicking a stats-card doesn't misfire the habit toggle).
+- Session fully persisted: `sessionId=d294eb3c`, queryable via
+  `/api/sessions/d294eb3c` — real completed_at timestamp, summary, stats,
+  and every task's generated code, tokens, phone, runtime.
+
+**Decision: did NOT commit the generated demo-app files.** `demo/target-app/`
+was reverted to pristine (`git checkout --`) right after, on purpose — the
+whole point of this run was to PROVE the exact `demo/DEMO_SCRIPT.md` prompt
+works flawlessly on real hardware, not to ship its output. The venue demo
+should be run fresh (this exact prompt is already the one documented in
+DEMO_SCRIPT.md, unchanged) so the live audience sees the real decomposition +
+delegation + integration happen, not a replay.
+
+**This is the last item on the Phase 6.5/7/8 punch list that mattered before
+the actual pitch.** Phase 6.5 chaos test + controlled bench (closed earlier
+today) + this polished run together mean: NPU works, CPU fallback works,
+full-phone-drop resilience works, and the flagship /sisyphus flow works
+end-to-end on real hardware with a real speedup story (~2.1x decode,
+~11.2x prefill) and a real reliability story. Ready to demo as-is.
+
+## 2026-08-29 — Session checkpoint #2 (context switch: siddh's usage limit)
+siddh8nt's Claude Code is approaching its usage limit; dev is moving to
+another teammate's machine/account. Per `docs/VENUE_RUNBOOK.md` §"Continue
+development on another teammate's Claude Code" — the repo is the handoff,
+read this entry + the last few above it, then `docs/phases.md`, then
+`docs/rules.md`.
+
+**What's true right now:**
+- Repo is clean, `demo/target-app/` is pristine (untouched since the last
+  commit) — the demo prompt run above proved it works but left no trace on
+  disk, by design.
+- Orchestrator is running on **siddh's machine** at `192.168.137.1:4100`
+  (started manually in a terminal after a machine reboot earlier this
+  session — NOT tracked by any Claude Code background job). Whoever
+  continues needs to check whether that machine/hotspot is still reachable,
+  or re-run Part A of `docs/VENUE_RUNBOOK.md` on the new hub.
+- Fleet last known state: iqoo-2 + iqoo-3 online/NPU-healthy; iqoo-1 online
+  but its NPU had died mid-session from idle/sleep (auto-fell-back to CPU
+  cleanly) and was not revived (not on USB at the time). All 3 CPU endpoints
+  healthy throughout.
+- All phase-progress docs (this file, phases.md) are up to date and pushed
+  to `origin/main` as of the previous checkpoint commit; this entry + the
+  demo-run entry above are the newest, about to be committed now.
+
+**NEXT for whoever resumes:**
+1. Decide whether to keep siddh's machine as hub or move the hub to the new
+   machine (re-run Part A of VENUE_RUNBOOK.md if moving: hotspot, firewall
+   rule, `npm start`).
+2. Re-attach the 3 iQOOs to whichever machine is hub (Part B: `setup.sh` per
+   phone; Part C: `start-npu.ps1 -Serial <s>` per phone for NPU, bundle
+   already on-device, no re-push needed).
+3. Everything else is DONE: Phase 6.5 closed, Phase 8 passed, the demo prompt
+   is proven. From here it's rehearsal + Phase 7 prompt polish + (if time)
+   Phase 9 native app groundwork.
+
+**No `Co-Authored-By: Claude` trailer on any commit** — commits are authored
+by the human alone.

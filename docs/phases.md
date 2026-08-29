@@ -11,13 +11,21 @@ date each phase passes.
 > drop (`am force-stop com.termux`) → graceful exclusion + redistribution, 0
 > cloud fallback. Controlled NPU-vs-CPU bench DONE: **avg 2.1x decode speedup,
 > avg 11.2x prefill/TTFT speedup** (real pitch stat, see memory.md).
-> **CONTEXT SWITCH CHECKPOINT (2026-08-29):** read the last memory.md entry
-> first — it has live fleet state (iqoo-1's NPU died from idle/sleep and
-> auto-fell-back to CPU cleanly, not currently on USB; iqoo-2/iqoo-3 both
-> healthy on NPU), exactly what's running on this machine, and 2 unpushed
-> commits waiting on a push confirmation.
-> **NEXT:** (1) polished human /sisyphus run in Claude Code (demo/target-app)
-> · (2) Phase 7 real-phone prompt tuning · (3) Phase 9 native app.
+> **Polished human /sisyphus demo run PROVEN (2026-08-29, real hardware):**
+> ran the exact `demo/DEMO_SCRIPT.md` prompt end-to-end — 3 on-device / 2
+> cloud / 2 NPU / 561 tokens saved / ~5m11s, 0 fallback, review caught + fixed
+> 2 real small-model bugs before integrating. `demo/target-app/` reverted to
+> pristine afterward on purpose — the demo should run fresh live, not replay
+> a committed result. Full details in memory.md (session d294eb3c).
+> **CONTEXT SWITCH CHECKPOINT #2 (2026-08-29):** siddh's usage limit —
+> handing off to a teammate's machine. Read the last 2 memory.md entries
+> first. Orchestrator is running on siddh's machine (started manually, not
+> tracked by any background job) — decide whether to keep that as hub or
+> move it. Fleet last known: iqoo-2/iqoo-3 online+NPU-healthy; iqoo-1 online
+> but NPU died from idle (cleanly fell back to CPU), not revived.
+> **NEXT:** (1) re-establish the hub (same machine or new) + re-attach the 3
+> iQOOs · (2) Phase 7 real-phone prompt tuning · (3) rehearse the proven demo
+> prompt live · (4) Phase 9 native app, if time allows.
 
 ---
 
@@ -194,15 +202,25 @@ Tasks:
 - [x] Robustness: abandoned-session self-heal (new prompt → fresh session, stats
   don't accumulate if sisyphus_complete was missed)
 - [x] Dashboard empty/error states (0 phones, no session, reconnecting) verified
-- [ ] Tune worker prompt vs real outputs (needs real phone)
-- [~] Tune demo prompt for reliable ~3/2 split (prompt set; final tune on hardware)
+- [~] Tune worker prompt vs real outputs — 1 real run done (see below), 2
+  small-model bugs found + fixed by hand at review time (digit slip in a hex
+  color, invalid bare CSS value); prompt itself didn't need changing, the
+  skill's own "review before integrating" step absorbed both. More real runs
+  would sand down further but the flow is proven.
+- [x] Tune demo prompt for reliable ~3/2 split — CONFIRMED on real hardware
+  2026-08-29: `demo/DEMO_SCRIPT.md`'s exact prompt produced 3 on-device / 2
+  cloud, 0 fallback, first try.
 - [x] `DEMO_SCRIPT.md` run sheet + pre-demo checklist + contingencies
 - [ ] (stretch) qwen2.5-coder:7b on one phone CPU (needs phone)
 
 **Acceptance:** 3 consecutive flawless mock rehearsals (→ 3/3 PASS, consistent
-3 on-device/2 cloud/1 NPU/153 saved/~3.8s); 1 flawless real-phone run (pending
-iQOO hardware).
-**Status:** [~] mock hardening DONE; real-phone run awaits iQOO. · **Passed:** —
+3 on-device/2 cloud/1 NPU/153 saved/~3.8s); 1 flawless real-phone run — DONE
+2026-08-29: 3 on-device (2 NPU/1 CPU) / 2 cloud / 561 tokens saved / ~5m11s,
+0 fallback, reviewed + integrated cleanly (session d294eb3c, full detail in
+memory.md). `demo/target-app/` reverted to pristine after, so the venue run
+is a fresh live demo, not a replay.
+**Status:** [x] PASSED (mock hardening + 1 real-phone run both done) ·
+**Passed:** 2026-08-29
 
 ---
 
