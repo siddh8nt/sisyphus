@@ -140,9 +140,11 @@ Tasks:
   All ASCII, parse-clean.
 - [x] Laptop pre-flight: adb present (v37.0.1 at LOCALAPPDATA SDK; scripts
   auto-detect it, no PATH change). Docker present (29.5.2).
-- [~] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
-  — BLOCKED: Docker Desktop crashed on launch (stale Model Runner socket at
-  %LOCALAPPDATA%\Docker\run\dockerInference). Fix steps in memory.md morning-start.
+- [x] Build the bundle (Docker) + download Q4_0 model → phone/npu/bundle/
+  — DONE 2026-08-29 on akshat's laptop (fresh Docker install, no stale-socket
+  crash). Bundle has bin/llama-server + all HTP libs incl. libggml-htp-v81.so
+  (iQOO 15); model Qwen2.5-Coder-3B-Instruct-Q4_0.gguf (1.83 GB, size+magic
+  verified). adb r37.0.1 installed. See memory.md.
 - [ ] iQOO in hand: enable USB debugging, deploy, register NPU endpoint
 - [ ] Benchmark NPU vs CPU tok/s + prefill → memory.md
 - [ ] Chaos test: kill NPU mid-session → seamless CPU fallback, narrated

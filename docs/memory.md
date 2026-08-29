@@ -406,3 +406,27 @@ derives a CSS class name from the spec via
 to matching `.css` from the filename, and the task fails its `checks` → retry →
 Claude fallback. Write CSS specs unbackticked (`a .stats-card component`). Real
 phones don't care; this only shapes mock rehearsal numbers.
+
+## 2026-08-29 — NPU bundle BUILT (phase-independent blocker cleared)
+On akshat's laptop (teammate dev machine, not the hub). Closes the "START HERE
+NEXT SESSION" item that was blocked on the hub's Docker crash.
+- **Docker Desktop 4.88.1** installed fresh via winget → daemon came up clean,
+  no stale Model Runner socket (the crash was hub-specific, not reproduced here).
+- `phone/npu/build-npu.ps1` ran to exit 0: shallow-cloned ggml-org/llama.cpp,
+  pulled `ghcr.io/snapdragon-toolchain/arm64-android:v0.7`, cross-compiled (743
+  objects, clean), staged install tree → `phone/npu/bundle/`.
+- Bundle verified: `bin/llama-server` (ARM aarch64 ELF; small because it links
+  the 20 shared .so libs, not static), `lib/libggml-hexagon.so`, and all HTP
+  arch libs **v73/v75/v79/v81** — v81 = iQOO 15 / 8 Elite Gen 5 = our target.
+- Model: `gguf/Qwen2.5-Coder-3B-Instruct-Q4_0.gguf`, 1,828,486,400 bytes —
+  matches HF Content-Length exactly, GGUF magic OK. (Plain Q4_0, NOT the
+  Q4_0_4_4/_4_8/_8_8 ARM-CPU repacks — Hexagon HTP wants plain Q4_0.)
+- **adb**: installed Google.PlatformTools r37.0.1 via winget (on PATH; deploy
+  scripts' `Get-Command adb` resolver finds it). No Android SDK needed.
+- Bundle + model are gitignored (`phone/npu/bundle/`); portable — copy to
+  whichever laptop has an iQOO on USB, or re-run build-npu.ps1 there.
+
+**NOT done (all need an iQOO on USB, none connected now):** deploy-npu.ps1,
+NPU-vs-CPU benchmark, chaos test. A OnePlus 13s (CPH2723, SM8750=8 Elite/v79)
+was attached but ONLY for USB internet tethering — deliberately NOT deployed to
+(wrong arch + it's the internet uplink). Do not deploy to it.
