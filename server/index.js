@@ -88,9 +88,14 @@ export function startServer() {
   const app = createApp();
   const server = http.createServer(app);
   attachBus(server);
-  // Snapshot includes any routing plan still awaiting approval, so a dashboard
-  // opened mid-wait renders the approval table immediately.
-  setSnapshotProvider(() => ({ ...registry.snapshot(), approval: engine.pendingApproval() }));
+  // Snapshot includes any routing plan still awaiting approval (so a dashboard
+  // opened mid-wait renders the approval table) and the active session's tasks +
+  // gate logs (so a worker view opened/reloaded mid-run isn't stuck on READY).
+  setSnapshotProvider(() => ({
+    phones: registry.snapshot().phones,
+    approval: engine.pendingApproval(),
+    ...engine.sessionSnapshot(),
+  }));
   registry.startRegistry();
   server.listen(PORT, () => {
     log.ok(`orchestrator listening on http://localhost:${PORT}`);

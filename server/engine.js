@@ -172,14 +172,19 @@ export async function delegate({ tasks = [], keep = [], prompt } = {}) {
   if (auto) {
     logReasoning(`No operator action within ${Math.round(APPROVAL_TIMEOUT_MS / 1000)}s — routing plan auto-approved.`);
   }
+  let reassigned = false;
   for (const t of taskObjs) {
     if (overrides[t.id] === 'claude') {
       const q = queues.get(t.phoneId);
       const i = q ? q.indexOf(t) : -1;
       if (i >= 0) q.splice(i, 1);
+      t.assign = 'claude'; // move it out of the "on phones" plan column
       reassignToClaude(t);
+      reassigned = true;
     }
   }
+  // Re-emit the plan so operator reassignments show under "Claude keeps".
+  if (reassigned) emitPlan(taskObjs, keep);
   emit('approval_resolved', { overrides, auto });
 
   // Run each phone's queue sequentially; phones run concurrently.
@@ -259,6 +264,55 @@ export function approvePlan(overrides = {}) {
 /** Pending approval table (for the WS hello snapshot), or null. */
 export function pendingApproval() {
   return approvalWaiter ? { tasks: approvalWaiter.rows, timeoutMs: APPROVAL_TIMEOUT_MS } : null;
+}
+
+/**
+ * Current-session snapshot for the WS `hello` so a UI opened or reloaded
+ * mid/post-run (esp. a worker view) renders the tasks + gate log it missed,
+ * instead of falling back to READY. Rebuilds the plan + per-task view state; the
+ * final code stands in for the streamed output pane.
+ */
+export function sessionSnapshot() {
+  if (!session) return { session: null, plan: null, tasks: [], outputs: {} };
+  const list = [...session.tasks.values()];
+  const outputs = {};
+  const tasks = list.map((t) => {
+    if (t.code) outputs[t.id] = t.code;
+    return {
+      taskId: t.id,
+      title: t.title,
+      file: t.file,
+      state: t.state,
+      status: t.status,
+      phoneId: t.phoneId,
+      phoneName: t.phoneName,
+      runtime: t.runtime,
+      gate: t.gate || undefined,
+      tokensOut: t.tokensOut || 0,
+      tokPerSec: t.tokPerSec || 0,
+      durationMs: t.durationMs || 0,
+      fallback: !!t.fallback,
+      result: ['completed', 'failed', 'fallback_claude'].includes(t.state) || undefined,
+    };
+  });
+  const plan = {
+    tasks: [
+      ...list.map((t) => ({
+        taskId: t.id,
+        title: t.title,
+        assign: t.assign || 'claude',
+        rationale: t.spec?.split('\n')[0] || '',
+        file: t.file,
+      })),
+      ...session.keep.map((k) => ({ taskId: 'keep_' + k.title, title: k.title, assign: 'claude', rationale: k.rationale || '' })),
+    ],
+  };
+  return {
+    session: { id: session.sessionId, prompt: session.prompt, startedAt: session.startedAt, completed: !!session.completed },
+    plan,
+    tasks,
+    outputs,
+  };
 }
 
 function reassignToClaude(task) {
@@ -422,8 +476,13 @@ function recordStats(task) {
 }
 
 function emitResult(task) {
+  // Self-describing so a live worker view (which never received title/file via
+  // task_state, and may have missed the live task_gate) converges on exactly
+  // what the hello-snapshot path shows: clean extracted code + gate + header.
   emit('task_result', {
     taskId: task.id,
+    title: task.title,
+    file: task.file,
     status: task.status,
     runtime: task.runtime,
     phoneId: task.phoneId,
@@ -433,6 +492,8 @@ function emitResult(task) {
     durationMs: task.durationMs,
     tokPerSec: task.tokPerSec,
     fallback: task.fallback,
+    code: task.code,
+    gate: task.gate || undefined,
   });
 }
 

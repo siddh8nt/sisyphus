@@ -7,7 +7,10 @@ export default function WorkerView({ phoneId }) {
   const phone = s.phones.find((p) => p.phoneId === phoneId);
   const myTasks = Object.values(s.tasks).filter((t) => t.phoneId === phoneId);
   const active = myTasks.find((t) => ['dispatched', 'generating', 'validating', 'retrying'].includes(t.state)) || myTasks[myTasks.length - 1];
-  const output = active ? s.outputs[active.taskId] : '';
+  // Once the task settles, show the canonical extracted code (fences stripped)
+  // so a live view matches a reloaded/snapshot view exactly. While generating,
+  // fall back to the raw token stream for the live typing effect.
+  const output = active ? (active.code || s.outputs[active.taskId] || '') : '';
   const t = phone?.telemetry || {};
   const online = phone?.status === 'online';
   const streaming = active && active.state === 'generating';

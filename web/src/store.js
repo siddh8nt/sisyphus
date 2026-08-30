@@ -51,8 +51,8 @@ function resetSession(id, prompt, ts) {
 function reduce(msg) {
   const { type, payload, ts } = msg;
   switch (type) {
-    case 'hello':
-      return {
+    case 'hello': {
+      const next = {
         ...state,
         phones: payload.phones || [],
         // A dashboard opened mid-wait still renders the pending approval table.
@@ -60,6 +60,18 @@ function reduce(msg) {
           ? { ...payload.approval, requestedAt: ts, resolved: false }
           : state.approval,
       };
+      // Restore the active session so a UI opened/reloaded mid-run (esp. a worker
+      // view) shows its tasks + gate logs instead of a blank READY state.
+      if (payload.session) {
+        next.session = payload.session;
+        if (payload.plan) next.plan = payload.plan;
+        if (Array.isArray(payload.tasks) && payload.tasks.length) {
+          next.tasks = Object.fromEntries(payload.tasks.map((t) => [t.taskId, t]));
+        }
+        if (payload.outputs) next.outputs = { ...state.outputs, ...payload.outputs };
+      }
+      return next;
+    }
     case 'phone_update': {
       const phones = state.phones.slice();
       const i = phones.findIndex((p) => p.phoneId === payload.phoneId);

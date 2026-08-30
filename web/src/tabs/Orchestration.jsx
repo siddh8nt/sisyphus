@@ -2,15 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store.js';
 import { Card, StateChip, RuntimeBadge } from '../components/ui.jsx';
 
-function useElapsed(startedAt, running) {
+// Ticks while running; freezes at `stopAt` (a timestamp) once the run has settled.
+function useElapsed(startedAt, stopAt) {
   const [, force] = useState(0);
+  const running = startedAt && !stopAt;
   useEffect(() => {
     if (!running) return;
     const t = setInterval(() => force((n) => n + 1), 500);
     return () => clearInterval(t);
   }, [running]);
   if (!startedAt) return '0.0s';
-  return ((Date.now() - startedAt) / 1000).toFixed(1) + 's';
+  return (((stopAt || Date.now()) - startedAt) / 1000).toFixed(1) + 's';
 }
 
 function ReasoningFeed({ reasoning }) {
@@ -227,12 +229,29 @@ function TaskCard({ task, output }) {
 function Scoreboard({ tasks, plan, stats, session }) {
   const list = Object.values(tasks);
   const onDevice = stats ? stats.tasksOnDevice : list.filter((t) => t.state === 'completed' && !t.fallback).length;
-  const keptCount = plan ? plan.tasks.filter((t) => t.assign === 'claude').length : 0;
-  const cloud = stats ? stats.tasksCloud : list.filter((t) => t.fallback).length + keptCount;
+  // Kept tasks that aren't dispatched phone tasks — reassigned ones already
+  // count via the fallback filter below, so exclude them to avoid double-counting.
+  const inList = new Set(list.map((t) => t.taskId));
+  const keptOnly = plan ? plan.tasks.filter((t) => t.assign === 'claude' && !inList.has(t.taskId)).length : 0;
+  const cloud = stats ? stats.tasksCloud : list.filter((t) => t.fallback).length + keptOnly;
   const npu = stats ? stats.npuTasks : list.filter((t) => t.state === 'completed' && !t.fallback && t.runtime === 'npu').length;
   const saved = stats ? stats.cloudTokensSaved : list.filter((t) => t.state === 'completed' && !t.fallback).reduce((s, t) => s + (t.tokensOut || 0), 0);
-  const elapsed = useElapsed(session?.startedAt, session && !session.completed);
-  const live = session && !session.completed;
+
+  // Freeze the timer once every phone task has settled, even if the session
+  // hasn't been formally completed via sisyphus_complete yet.
+  const TERMINAL = ['completed', 'failed', 'fallback_claude'];
+  const expectedPhoneTasks = plan ? plan.tasks.filter((t) => t.assign !== 'claude').length : 0;
+  const allSettled =
+    list.length > 0 &&
+    list.length >= expectedPhoneTasks &&
+    list.every((t) => t.result || TERMINAL.includes(t.state));
+  const stopRef = useRef({ id: null, at: null });
+  if (session && stopRef.current.id !== session.id) stopRef.current = { id: session.id, at: null };
+  if (allSettled && stopRef.current.at == null) stopRef.current.at = Date.now();
+  const stopAt =
+    session?.completed && stats ? session.startedAt + stats.wallClockMs : allSettled ? stopRef.current.at : null;
+  const elapsed = useElapsed(session?.startedAt, stopAt);
+  const live = session && !stopAt;
   const Item = ({ label, value, signal }) => (
     <div className="flex-1 flex flex-col items-center py-3.5 border-r last:border-r-0" style={{ borderColor: 'var(--paper-border)' }}>
       <span className="pixel text-[26px] tabular inline-flex items-center gap-2">
@@ -251,8 +270,8 @@ function Scoreboard({ tasks, plan, stats, session }) {
       <Item label="NPU tasks" value={npu} />
       <Item label="Tokens saved" value={saved} />
       <Item
-        label={session?.completed ? 'Total' : 'Elapsed'}
-        value={session?.completed ? (stats ? (stats.wallClockMs / 1000).toFixed(1) + 's' : elapsed) : elapsed}
+        label={stopAt ? 'Total' : 'Elapsed'}
+        value={elapsed}
         signal={live}
       />
     </div>
