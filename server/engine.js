@@ -11,7 +11,15 @@ import { generate } from './lib/worker-client.js';
 import { validate, extractFirstFencedBlock } from './lib/validate.js';
 import { runTests } from './lib/test-runner.js';
 import { buildWorkerPrompt } from './prompts/build.js';
-import { APPROVAL_TIMEOUT_MS, ETA_TOK_PER_SEC, ETA_OVERHEAD_SEC } from './config.js';
+import { APPROVAL_TIMEOUT_MS, ETA_TOK_PER_SEC, ETA_OVERHEAD_SEC, CLOUD_PRICING } from './config.js';
+
+// Cloud cost avoided by one task (see CLOUD_PRICING methodology note): only a
+// gate-passed on-device completion counts, at the cloud OUTPUT rate.
+function costSavedFields(task) {
+  if (task.status !== 'completed' || task.fallback) return { savedUsd: 0, savedInr: 0 };
+  const usd = ((task.tokensOut || 0) * CLOUD_PRICING.outputUsdPerMTok) / 1e6;
+  return { savedUsd: +usd.toFixed(4), savedInr: +(usd * CLOUD_PRICING.usdToInr).toFixed(2) };
+}
 
 let session = null; // active session
 let approvalWaiter = null; // {rows, resolve} while a routing plan awaits the operator
@@ -293,6 +301,7 @@ export function sessionSnapshot() {
       durationMs: t.durationMs || 0,
       fallback: !!t.fallback,
       result: ['completed', 'failed', 'fallback_claude'].includes(t.state) || undefined,
+      ...costSavedFields(t),
     };
   });
   const plan = {
@@ -494,6 +503,7 @@ function emitResult(task) {
     fallback: task.fallback,
     code: task.code,
     gate: task.gate || undefined,
+    ...costSavedFields(task),
   });
 }
 
@@ -567,12 +577,17 @@ export function completeSession(summary, filesChanged = []) {
   const fellBack = tasks.filter((t) => t.fallback);
   const npuTasks = onDevice.filter((t) => t.runtime === 'npu');
   const cloudTokensSaved = onDevice.reduce((s, t) => s + (t.tokensOut || 0), 0);
+  const cloudCostSavedUSD = +((cloudTokensSaved * CLOUD_PRICING.outputUsdPerMTok) / 1e6).toFixed(4);
+  const cloudCostSavedINR = +(cloudCostSavedUSD * CLOUD_PRICING.usdToInr).toFixed(2);
   const stats = {
     tasksTotal: tasks.length + session.keep.length,
     tasksOnDevice: onDevice.length,
     tasksCloud: fellBack.length + session.keep.length,
     npuTasks: npuTasks.length,
     cloudTokensSaved,
+    cloudCostSavedUSD,
+    cloudCostSavedINR,
+    pricing: CLOUD_PRICING,
     wallClockMs: Date.now() - session.startedAt,
     filesChanged,
   };

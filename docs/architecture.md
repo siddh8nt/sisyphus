@@ -78,13 +78,31 @@ Envelope: `{ type, ts, sessionId, payload }`. Types:
   (`assign` = phoneId | `"claude"`)
 - `task_state` — `{ taskId, state, phoneId?, runtime?, detail? }`
 - `token` — `{ taskId, phoneId, text }` (streamed output chunk)
-- `task_result` — `{ taskId, status, runtime, phoneId?, tokensIn, tokensOut, durationMs, tokPerSec, fallback }`
+- `task_result` — `{ taskId, status, runtime, phoneId?, tokensIn, tokensOut, durationMs, tokPerSec, fallback, savedUsd, savedInr }`
+  (`savedUsd`/`savedInr` = cloud cost avoided by this task; 0 unless gate-passed on-device — see §Cloud-savings metric)
 - `phone_update` — the **full serialized logical phone** (superset of
   `{ phoneId, name, status, activeRuntime, endpoints[], telemetry, sessionTotals }`).
   Emitted on register, heartbeat, health change, and status flip.
 
 Clients: dashboard subscribes to all; worker view filters by its phoneId. On
-connect the server sends a `hello` snapshot: current phones + active session.
+connect the server sends a `hello` snapshot: current phones + active session +
+`pricing` (the `CLOUD_PRICING` object, so any UI can live-derive ₹ saved).
+
+## Cloud-savings metric (deliberately conservative — a floor, not a stretch)
+Every **output token of a gate-passed on-device task** is a token the cloud
+agent would otherwise have had to *generate* itself, so it is billed at the
+cloud **output** rate only: `savedUsd = tokensOut × outputUsdPerMTok / 1e6`,
+`savedInr = savedUsd × usdToInr`. Real-but-excluded savings (so the number is
+defensible): input-side costs (specs, context re-reads) and the fact that
+applied code never re-enters Claude's context as input tokens on later turns.
+Rates live in `server/config.js` `CLOUD_PRICING` (env-overridable:
+`SISYPHUS_CLOUD_MODEL`, `SISYPHUS_USD_PER_MTOK_OUT`, `SISYPHUS_USD_INR`);
+as of 2026-08-30: claude-opus-5 output $25/MTok, $1 = ₹95.4. Per-task fields
+ride `task_result` + the hello snapshot; session totals (`cloudCostSavedUSD`,
+`cloudCostSavedINR`, `pricing`) land in `session_completed` stats. UI: a gold
+"CLOUD SPEND AVOIDED" banner (₹ + $ + tokens + a fun-fact line, ladder in
+`web/src/lib/cost.js`) pops onto the top of the Orchestration tab on the first
+rupee; each task card and the worker view show `₹ saved` beside tok/s.
 
 ## Task engine
 - Dispatch: phone tasks fan out **in parallel**, one in-flight task per phone.

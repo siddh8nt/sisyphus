@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store.js';
 import { Card, StateChip, RuntimeBadge } from '../components/ui.jsx';
+import { taskSavedInr, fmtInr, funFact, DEFAULT_PRICING } from '../lib/cost.js';
 
 // Ticks while running; freezes at `stopAt` (a timestamp) once the run has settled.
 function useElapsed(startedAt, stopAt) {
@@ -13,6 +14,42 @@ function useElapsed(startedAt, stopAt) {
   }, [running]);
   if (!startedAt) return '0.0s';
   return (((stopAt || Date.now()) - startedAt) / 1000).toFixed(1) + 's';
+}
+
+// The headline metric: cloud spend avoided by the fleet this session. Pops in
+// on the first gate-passed on-device task and grows live as results land.
+// Conservative by construction — on-device output tokens × cloud OUTPUT rate
+// only (input-side savings aren't counted), so every rupee shown is defensible.
+function SavingsBanner({ tasks, stats, pricing }) {
+  const p = pricing || DEFAULT_PRICING;
+  const list = Object.values(tasks);
+  const doneOnDevice = list.filter((t) => t.state === 'completed' && !t.fallback);
+  const tokens = stats ? stats.cloudTokensSaved : doneOnDevice.reduce((s, t) => s + (t.tokensOut || 0), 0);
+  const inr = stats?.cloudCostSavedINR ?? list.reduce((s, t) => s + taskSavedInr(t, p), 0);
+  if (!(inr > 0)) return null;
+  const fact = funFact(inr, tokens);
+  return (
+    <div className="pop-in" style={{ background: 'var(--gold)', color: 'var(--ink)', border: '1px solid var(--gold-border)' }}>
+      <div className="flex items-center px-4 py-2 border-b" style={{ borderColor: 'var(--gold-deep)' }}>
+        <span className="text-[11px] tracking-[0.06em] font-medium">
+          <span className="inline-block w-2 h-2 mr-2" style={{ background: 'var(--ink)' }} />
+          Cloud spend avoided
+        </span>
+      </div>
+      <div className="dotfield-gold flex flex-col md:flex-row md:items-end justify-between gap-3 px-4 pt-4 pb-3">
+        <span className="pixel tabular text-[52px] md:text-[64px] leading-none">{fmtInr(inr)}</span>
+        <div className="flex items-baseline gap-5 tabular pb-1 italic">
+          <span className="text-[12px]">{tokens.toLocaleString('en-IN')} tok on-device</span>
+          <span className="text-[12px]">{doneOnDevice.length || stats?.tasksOnDevice || 0} task(s)</span>
+        </div>
+      </div>
+      {fact && (
+        <div className="px-4 py-2 border-t text-[11px] italic" style={{ borderColor: 'var(--gold-deep)' }}>
+          {fact}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ReasoningFeed({ reasoning }) {
@@ -212,7 +249,11 @@ function TaskCard({ task, output }) {
             <span>✕ fell back to Claude</span>
           ) : (
             <>
-              {task.tokensOut} tok · {task.tokPerSec} tok/s · {(task.durationMs / 1000).toFixed(1)}s
+              {task.tokensOut} tok · {task.tokPerSec} tok/s ·{' '}
+              {task.savedInr > 0 && (
+                <span style={{ color: 'var(--gold)' }}>{fmtInr(task.savedInr)} saved · </span>
+              )}
+              {(task.durationMs / 1000).toFixed(1)}s
             </>
           )}
           {task.gate && (
@@ -289,6 +330,7 @@ export default function Orchestration() {
           {s.session.completed && <span className="text-faint">· done</span>}
         </div>
       )}
+      <SavingsBanner tasks={s.tasks} stats={s.stats} pricing={s.pricing} />
       <ReasoningFeed reasoning={s.reasoning} />
       {s.approval && !s.approval.resolved && <ApprovalTable key={s.approval.requestedAt} approval={s.approval} />}
       <PlanColumns plan={s.plan} />

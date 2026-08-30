@@ -123,7 +123,9 @@ print a final message:
 
 - a table of tasks: ✓ / who ran it (phone + NPU/CPU, or "Claude") / gate result
   (e.g. `7/7`) / tokens;
-- the on-device vs cloud split, NPU-accelerated count, and cloud tokens saved;
+- the on-device vs cloud split, NPU-accelerated count, cloud tokens saved, and
+  the cloud cost avoided in ₹ (stats include `cloudCostSavedINR` /
+  `cloudCostSavedUSD` — on-device output tokens billed at the cloud output rate);
 - one line on what was built.
 
 Keep it graceful and honest. If phones did great, say so; if some fell back or

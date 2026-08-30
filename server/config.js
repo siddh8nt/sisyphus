@@ -27,6 +27,19 @@ export const WORKER_SAMPLING = {
 
 export const DEFAULT_MODEL = 'qwen2.5-coder:3b';
 
+// Cloud-cost savings metric. Methodology (deliberately conservative — a floor):
+// every output token of a gate-passed on-device task is a token the cloud agent
+// would otherwise have had to GENERATE itself, so it's billed at the cloud
+// output-token rate only. Real-but-excluded savings: input-side costs (specs,
+// context re-reads) and the fact that applied code never re-enters Claude's
+// context as input tokens on later turns. Rates as of 2026-08-30:
+// Claude Opus 5 API output = $25/MTok; USD→INR ≈ 95.4.
+export const CLOUD_PRICING = {
+  model: process.env.SISYPHUS_CLOUD_MODEL || 'claude-opus-5',
+  outputUsdPerMTok: Number(process.env.SISYPHUS_USD_PER_MTOK_OUT) || 25,
+  usdToInr: Number(process.env.SISYPHUS_USD_INR) || 95.4,
+};
+
 // Paths
 export const SERVER_DIR = path.resolve(import.meta.dirname);
 export const DATA_DIR = path.join(SERVER_DIR, 'data');

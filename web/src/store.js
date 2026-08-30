@@ -15,6 +15,7 @@ let state = {
   outputs: {}, // taskId -> streamed text
   stats: null, // final session stats
   telemetry: {}, // phoneId -> [{temp, cpu, ts}] ring buffer (last 60)
+  pricing: null, // {model, outputUsdPerMTok, usdToInr} from the hub (hello snapshot)
 };
 
 const MAX_TELEM = 60;
@@ -55,6 +56,7 @@ function reduce(msg) {
       const next = {
         ...state,
         phones: payload.phones || [],
+        pricing: payload.pricing || state.pricing,
         // A dashboard opened mid-wait still renders the pending approval table.
         approval: payload.approval
           ? { ...payload.approval, requestedAt: ts, resolved: false }

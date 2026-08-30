@@ -1055,3 +1055,39 @@ rule; `demo/target-app/` stays pristine and this includes its SKILL.md).
   docs/VENUE_RUNBOOK.md Part E, docs/prd.md demo flow step 2,
   docs/architecture.md skill heading, docs/phases.md Phase 10 path note.
   Historical log entries mentioning target-app left as-is (they are records).
+
+## 2026-08-30 — cloud-savings metric (₹) + gold "CLOUD SPEND AVOIDED" banner
+
+- **What:** every gate-passed on-device task now carries the cloud cost it
+  avoided, in USD and INR, end-to-end: `server/config.js` `CLOUD_PRICING`
+  (env-overridable `SISYPHUS_CLOUD_MODEL` / `SISYPHUS_USD_PER_MTOK_OUT` /
+  `SISYPHUS_USD_INR`) → engine adds `savedUsd`/`savedInr` to `task_result` +
+  the hello snapshot, and `cloudCostSavedUSD`/`cloudCostSavedINR`/`pricing` to
+  session stats → UI shows ₹ beside every tok/s stat (Orchestration task cards
+  AND the worker view — which is also what the Android kiosk app renders) plus
+  a big gold "CLOUD SPEND AVOIDED" banner that pops onto the top of the
+  Orchestration tab on the first rupee, with a fun-fact line
+  (`web/src/lib/cost.js` — chai/vada-pav/dosa ladder + Harry Potter pages).
+- **Methodology (the defensible part, deliberately a floor):** on-device output
+  tokens × cloud OUTPUT rate only. Excluded on purpose: input-side costs and
+  the fact that applied code never re-enters Claude's context — so the shown
+  number understates the true saving and survives judge scrutiny. Counts only
+  `status === 'completed' && !fallback` (i.e. gate-passed on-device); fallback /
+  reassigned tasks save ₹0.
+- **Rates verified 2026-08-30:** Claude Opus 5 API output **$25/MTok** (input
+  $5 — unused by the metric); **$1 = ₹95.4**. Both are config, not hardcoded in
+  the UI (the hub ships `pricing` in the WS hello; `web/src/lib/cost.js` has
+  matching display fallbacks).
+- **Design:** new tokens `--gold #c9a227` / `--gold-border` / `--gold-deep` +
+  `.dotfield-gold` + `.pop-in` — the banner is a darker-yellow sibling of the
+  cream `--paper` scoreboard (same ink-on-panel treatment), so it stays inside
+  the monochrome GLITCH system.
+- **Verified live:** second hub on :4199 + mock fleet + dev delegate → banner
+  ₹0.28 / $0.003 / 115 tok / 3 tasks + "2% of a cutting chai and climbing";
+  task cards "₹0.10 saved" beside tok/s; worker view "₹0.10 CLOUD SAVED" in
+  gold beside TOK/S. Vite build + node --check clean.
+- **NOTE:** the long-running hub on :4100 predates this change — restart
+  `npm start` to pick up the new server fields + rebuilt dashboard.
+- **Docs updated:** architecture.md (task_result fields, hello pricing, new
+  §Cloud-savings metric), DEMO_SCRIPT.md (2:10 beat now points at the banner),
+  prd.md (demo flow step 7), SKILL.md (final summary includes ₹ saved).

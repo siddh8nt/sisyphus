@@ -64,8 +64,11 @@ Configure shows phones **before** starting for the full effect.
   writes gate-passed files straight to disk without re-reading them and wires
   the feature in; the app still runs. Show the scoreboard: on-device vs cloud,
   NPU count, **cloud tokens saved**.
-- **2:10 — The number.** Read the final summary table in the terminal. "Every one
-  of those tokens is work the cloud didn't do."
+- **2:10 — The number.** Point at the gold **CLOUD SPEND AVOIDED** banner at the
+  top of Orchestration — live ₹ saved (on-device output tokens × the Opus output
+  rate, converted to INR), with the fun-fact line under it. Then read the final
+  summary table in the terminal. "Every one of those tokens is work the cloud
+  didn't do — and this is the bill it didn't send."
 - **2:30 — History.** Open the **History** tab — the session is logged with its
   task table.
 

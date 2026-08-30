@@ -54,7 +54,9 @@ the safety net is an automatic per-phone CPU fallback so the demo never breaks.
    handles anything that failed the gate or the driver rerouted, the app still
    runs.
 7. Final summary table prints: who did what, gate result, tokens, time, on-device
-   vs cloud, cloud tokens saved, NPU-accelerated count.
+   vs cloud, cloud tokens saved, cloud cost avoided (₹), NPU-accelerated count.
+   The dashboard mirrors it with a gold "CLOUD SPEND AVOIDED" banner (live ₹ +
+   a fun-fact equivalence) atop the Orchestration tab.
 
 ## Success criteria for the demo
 - ≥3 phones (or mock phones) generating in parallel, visibly.

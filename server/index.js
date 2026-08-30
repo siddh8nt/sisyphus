@@ -3,7 +3,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import express from 'express';
-import { PORT, WEB_DIST } from './config.js';
+import { PORT, WEB_DIST, CLOUD_PRICING } from './config.js';
 import { log } from './lib/log.js';
 import { attachBus, setSnapshotProvider } from './bus.js';
 import * as registry from './registry.js';
@@ -94,6 +94,7 @@ export function startServer() {
   setSnapshotProvider(() => ({
     phones: registry.snapshot().phones,
     approval: engine.pendingApproval(),
+    pricing: CLOUD_PRICING, // so any UI can live-derive ₹ saved before session stats land
     ...engine.sessionSnapshot(),
   }));
   registry.startRegistry();

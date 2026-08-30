@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from './store.js';
 import { StatusDot, RuntimeBadge, StateChip } from './components/ui.jsx';
+import { taskSavedInr, fmtInr } from './lib/cost.js';
 
 export default function WorkerView({ phoneId }) {
   const s = useStore();
@@ -83,6 +84,14 @@ export default function WorkerView({ phoneId }) {
               <span>
                 <span className="pixel text-[30px]" style={{ color: 'var(--signal)' }}>{active.tokPerSec}</span>
                 <span className="text-[9px] tracking-[0.14em] uppercase text-faint ml-2">tok/s</span>
+              </span>
+            )}
+            {active.result && !active.fallback && taskSavedInr(active, s.pricing) > 0 && (
+              <span>
+                <span className="pixel text-[30px]" style={{ color: 'var(--gold)' }}>
+                  {fmtInr(taskSavedInr(active, s.pricing))}
+                </span>
+                <span className="text-[9px] tracking-[0.14em] uppercase text-faint ml-2">cloud saved</span>
               </span>
             )}
           </div>

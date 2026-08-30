@@ -54,6 +54,11 @@
   --text-dim: #b8b5ad;
   --text-faint: #8a8880;
   --signal: #3ddc84;
+  /* savings panel — the "gold paper": a darker-yellow sibling of --paper,
+     same ink-on-panel treatment so it sits inside the monochrome system */
+  --gold: #c9a227;
+  --gold-border: #8f731c;
+  --gold-deep: #a8871f;
   /* legacy aliases (monochrome + single signal) so nothing breaks */
   --accent: #eae7e0;
   --accent-2: #3ddc84;
@@ -104,6 +109,26 @@ body {
   background-image: radial-gradient(#c9c6bd 1px, transparent 1px);
   background-size: 11px 11px;
   background-position: 0 100%;
+}
+.dotfield-gold {
+  background-image: radial-gradient(var(--gold-deep) 1px, transparent 1px);
+  background-size: 11px 11px;
+  background-position: 0 100%;
+}
+
+/* Savings banner pops in when the first rupee lands */
+.pop-in {
+  animation: popIn 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Live square indicator */
