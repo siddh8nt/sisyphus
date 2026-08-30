@@ -33,10 +33,10 @@ export const DEFAULT_MODEL = 'qwen2.5-coder:3b';
 // output-token rate only. Real-but-excluded savings: input-side costs (specs,
 // context re-reads) and the fact that applied code never re-enters Claude's
 // context as input tokens on later turns. Rates as of 2026-08-30:
-// Claude Opus 5 API output = $25/MTok; USD→INR ≈ 95.4.
+// Claude Fable 5 API output = $50/MTok; USD→INR ≈ 95.4.
 export const CLOUD_PRICING = {
-  model: process.env.SISYPHUS_CLOUD_MODEL || 'claude-opus-5',
-  outputUsdPerMTok: Number(process.env.SISYPHUS_USD_PER_MTOK_OUT) || 25,
+  model: process.env.SISYPHUS_CLOUD_MODEL || 'claude-fable-5',
+  outputUsdPerMTok: Number(process.env.SISYPHUS_USD_PER_MTOK_OUT) || 50,
   usdToInr: Number(process.env.SISYPHUS_USD_INR) || 95.4,
 };
 

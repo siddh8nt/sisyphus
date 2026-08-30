@@ -22,30 +22,29 @@ export default function Configure() {
         <span className="text-[11px] text-faint">{cfg ? `${cfg.ip}:${cfg.port}` : '…'}</span>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-border border border-border">
-        <div className="flex flex-col items-center gap-3.5 p-4" style={{ background: 'var(--paper)', color: 'var(--ink)' }}>
-          <div className="self-stretch text-[9px] tracking-[0.14em] uppercase" style={{ color: 'var(--text-faint)' }}>
-            Scan to open on a phone
-          </div>
-          {cfg?.qrDataUrl ? (
-            <img src={cfg.qrDataUrl} alt="join QR" width={190} height={190} style={{ border: '1px solid var(--paper-border)' }} />
-          ) : (
-            <div className="w-[190px] h-[190px] grid place-items-center text-[9px]" style={{ border: '1px solid var(--paper-border)', color: 'var(--text-faint)' }}>
-              …
-            </div>
-          )}
-          <div className="text-[11px] break-all text-center">{cfg?.joinUrl}</div>
+      <div className="module">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <span className="text-[10px] tracking-[0.14em] uppercase text-faint">Setup commands</span>
+          <span className="text-[10px] text-faint">hub → phones → mcp → /sisyphus</span>
         </div>
-
-        <Card className="flex flex-col gap-2.5 !border-0">
-          <div className="text-[9px] tracking-[0.14em] uppercase text-faint">Onboard a phone — paste in Termux</div>
-          <div className="bg-surface border border-border-soft p-2.5 text-[10px] leading-relaxed text-dim break-all">{cfg?.setupCmd || '…'}</div>
-          <div className="self-end">{cfg && <CopyButton text={cfg.setupCmd} label="Copy setup command" />}</div>
-
-          <div className="text-[9px] tracking-[0.14em] uppercase text-faint mt-2">Hook up the MCP server — in the demo project</div>
-          <div className="bg-surface border border-border-soft p-2.5 text-[10px] leading-relaxed text-dim break-all">{cfg?.mcpAddCmd || '…'}</div>
-          <div className="self-end">{cfg && <CopyButton text={cfg.mcpAddCmd} label="Copy MCP command" />}</div>
-        </Card>
+        <div className="flex flex-col gap-3 p-3">
+          {[
+            { label: '1 · Start the hub — sisyphus repo root', cmd: 'npm start' },
+            { label: '2 · Connect a phone (CPU) — paste in Termux, one name per phone', cmd: cfg?.setupCmd },
+            { label: '3 · Activate the NPU (optional) — laptop PowerShell, phone on USB', cmd: '.\\phone\\npu\\start-npu.ps1 -Name phone1 -Serial <adb-serial>' },
+            { label: '4 · Copy the wiring into the target project (one-time)', cmd: 'Copy-Item <sisyphus>\\.mcp.json .; Copy-Item -Recurse <sisyphus>\\.claude .claude' },
+            { label: '5 · Launch Claude Code from the target project, verify with /mcp', cmd: '$env:SISYPHUS_HOME = "<path-to-sisyphus>"; claude' },
+            { label: '6 · Fire the skill', cmd: '/sisyphus <describe the feature to build>' },
+          ].map((st) => (
+            <div key={st.label} className="flex flex-col gap-1">
+              <div className="text-[9px] tracking-[0.14em] uppercase text-faint">{st.label}</div>
+              <div className="flex items-start gap-2">
+                <div className="flex-1 bg-surface border border-border-soft p-2.5 text-[10px] leading-relaxed text-dim break-all">{st.cmd || '…'}</div>
+                {st.cmd && <CopyButton text={st.cmd} label="Copy" />}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="module">
