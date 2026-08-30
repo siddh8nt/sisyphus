@@ -20,12 +20,16 @@ function useElapsed(startedAt, stopAt) {
 // on the first gate-passed on-device task and grows live as results land.
 // Conservative by construction — on-device output tokens × cloud OUTPUT rate
 // only (input-side savings aren't counted), so every rupee shown is defensible.
-function SavingsBanner({ tasks, stats, pricing }) {
+function SavingsBanner({ tasks, stats, plan, pricing }) {
   const p = pricing || DEFAULT_PRICING;
   const list = Object.values(tasks);
   const doneOnDevice = list.filter((t) => t.state === 'completed' && !t.fallback);
   const tokens = stats ? stats.cloudTokensSaved : doneOnDevice.reduce((s, t) => s + (t.tokensOut || 0), 0);
   const inr = stats?.cloudCostSavedINR ?? list.reduce((s, t) => s + taskSavedInr(t, p), 0);
+  // Denominator: every leaf the plan named, phone-bound and Claude-kept alike.
+  // Falls back to the live task list before the plan lands.
+  const planned = plan?.tasks?.length || list.length;
+  const share = stats?.onDeviceShare ?? (planned ? doneOnDevice.length / planned : 0);
   if (!(inr > 0)) return null;
   const fact = funFact(inr, tokens);
   return (
@@ -37,7 +41,15 @@ function SavingsBanner({ tasks, stats, pricing }) {
         </span>
       </div>
       <div className="dotfield-gold flex flex-col md:flex-row md:items-end justify-between gap-3 px-4 pt-4 pb-3">
-        <span className="pixel tabular text-[52px] md:text-[64px] leading-none">{fmtInr(inr)}</span>
+        <div className="flex items-end gap-7">
+          <span className="pixel tabular text-[52px] md:text-[64px] leading-none">{fmtInr(inr)}</span>
+          {share > 0 && (
+            <span className="flex flex-col leading-none">
+              <span className="pixel tabular text-[40px] md:text-[48px]">{Math.round(share * 100)}%</span>
+              <span className="text-[10px] tracking-[0.12em] uppercase mt-1.5">ran on-device</span>
+            </span>
+          )}
+        </div>
         <div className="flex items-baseline gap-5 tabular pb-1 italic">
           <span className="text-[12px]">{tokens.toLocaleString('en-IN')} tok on-device</span>
           <span className="text-[12px]">{doneOnDevice.length || stats?.tasksOnDevice || 0} task(s)</span>
@@ -330,7 +342,7 @@ export default function Orchestration() {
           {s.session.completed && <span className="text-faint">· done</span>}
         </div>
       )}
-      <SavingsBanner tasks={s.tasks} stats={s.stats} pricing={s.pricing} />
+      <SavingsBanner tasks={s.tasks} stats={s.stats} plan={s.plan} pricing={s.pricing} />
       <ReasoningFeed reasoning={s.reasoning} />
       {s.approval && !s.approval.resolved && <ApprovalTable key={s.approval.requestedAt} approval={s.approval} />}
       <PlanColumns plan={s.plan} />

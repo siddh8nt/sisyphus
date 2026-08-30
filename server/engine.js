@@ -579,11 +579,17 @@ export function completeSession(summary, filesChanged = []) {
   const cloudTokensSaved = onDevice.reduce((s, t) => s + (t.tokensOut || 0), 0);
   const cloudCostSavedUSD = +((cloudTokensSaved * CLOUD_PRICING.outputUsdPerMTok) / 1e6).toFixed(4);
   const cloudCostSavedINR = +(cloudCostSavedUSD * CLOUD_PRICING.usdToInr).toFixed(2);
+  const tasksTotal = tasks.length + session.keep.length;
+  // Share of the session's leaf work the fleet actually completed. Task-based,
+  // not token-based: the hub never sees Claude's own output token counts, so a
+  // token ratio would be a guess. This one is measured end to end.
+  const onDeviceShare = tasksTotal ? +(onDevice.length / tasksTotal).toFixed(3) : 0;
   const stats = {
-    tasksTotal: tasks.length + session.keep.length,
+    tasksTotal,
     tasksOnDevice: onDevice.length,
     tasksCloud: fellBack.length + session.keep.length,
     npuTasks: npuTasks.length,
+    onDeviceShare,
     cloudTokensSaved,
     cloudCostSavedUSD,
     cloudCostSavedINR,
