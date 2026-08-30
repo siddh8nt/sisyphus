@@ -2,9 +2,9 @@
   "mcpServers": {
     "sisyphus": {
       "command": "node",
-      "args": ["mcp/index.js"],
+      "args": ["${SISYPHUS_HOME:-.}/mcp/index.js"],
       "env": {
-        "SISYPHUS_ORCH": "http://127.0.0.1:4100"
+        "SISYPHUS_ORCH": "${SISYPHUS_ORCH:-http://127.0.0.1:4100}"
       }
     }
   }

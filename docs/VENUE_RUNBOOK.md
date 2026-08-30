@@ -79,9 +79,14 @@ telemetry (10% of the score).
 
 ## Part E — Run the demo
 Open **Claude Code at the sisyphus repo root** (the `/sisyphus` skill +
-`.mcp.json` are wired there — or copy both into any project you want to demo
-against) and paste the `/sisyphus` prompt from `demo/DEMO_SCRIPT.md`, watching
-the dashboard. Reset between runs with `git checkout -- .` in the target project.
+`.mcp.json` are wired there, zero config) and paste the `/sisyphus` prompt from
+`demo/DEMO_SCRIPT.md`, watching the dashboard. Reset between runs with
+`git checkout -- .` in the target project.
+
+To demo against a **different** project, copy `.mcp.json` +
+`.claude/skills/sisyphus/` into it and set `SISYPHUS_HOME` to your sisyphus
+checkout before launching Claude Code (PowerShell: `$env:SISYPHUS_HOME="C:\path\to\sisyphus"`).
+Gate-passed files then land in that project's tree. See `demo/DEMO_SCRIPT.md`.
 
 ---
 

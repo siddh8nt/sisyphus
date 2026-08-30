@@ -61,9 +61,12 @@ npm run ws-tap
 ## Running the demo with Claude Code
 
 The `/sisyphus` skill (`.claude/skills/sisyphus/SKILL.md`) and `.mcp.json` are
-wired at the repo root. Open Claude Code in `sisyphus/` (or copy those two into
-any project you want to demo against) and run the `/sisyphus` prompt from
-`demo/DEMO_SCRIPT.md`. Claude decomposes the
+wired at the repo root. Open Claude Code in `sisyphus/` and run the `/sisyphus`
+prompt from `demo/DEMO_SCRIPT.md`. To use it in **any other project**, copy those
+two into it and set `SISYPHUS_HOME` to your sisyphus checkout before launching
+Claude Code — `.mcp.json` uses `${SISYPHUS_HOME:-.}/mcp/index.js`, so it defaults
+to the repo root and points at your install elsewhere; gate-passed files then
+land in that project's tree (details in `demo/DEMO_SCRIPT.md`). Claude decomposes the
 task (baking a small unit-test suite into each phone task), proposes a routing
 plan you approve on the Orchestration tab, the phones generate and self-check
 through the gate, Claude writes the gate-passed files to disk (`sisyphus_apply`)

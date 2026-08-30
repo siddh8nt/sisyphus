@@ -1,10 +1,26 @@
 # Sisyphus — Demo Run Sheet
 
 Demo target: **any project you open Claude Code in.** The `/sisyphus` skill and
-`.mcp.json` are wired at the sisyphus repo root — open Claude Code there, or copy
-`.mcp.json` + `.claude/skills/sisyphus/` into the project you want to demo
-against (gate-passed files are written into that project's working directory).
-Runs entirely on the laptop + hotspot; the only cloud dependency is the Claude API.
+`.mcp.json` are wired at the sisyphus repo root, so opening Claude Code there
+works with zero config (gate-passed files land in the sisyphus repo, reset with
+`git checkout`). Runs entirely on the laptop + hotspot; the only cloud dependency
+is the Claude API.
+
+**To demo against a different project** (gate-passed files land in *that*
+project's tree): copy `.mcp.json` + `.claude/skills/sisyphus/` into it, and set
+`SISYPHUS_HOME` to your sisyphus checkout **before launching Claude Code** so the
+MCP server can be found:
+
+```
+# PowerShell — set once for the session, then start Claude Code from the same shell
+$env:SISYPHUS_HOME = "C:\path\to\sisyphus"
+# macOS/Linux:  export SISYPHUS_HOME=/path/to/sisyphus
+```
+
+`.mcp.json` reads `${SISYPHUS_HOME:-.}/mcp/index.js`, so it defaults to `.` (the
+repo root) when unset and points at your install when set. The MCP server runs
+with its cwd = wherever you opened Claude Code, so `sisyphus_apply` writes files
+into *that* project; it still talks to the hub on `127.0.0.1:4100`.
 
 ## The seed prompt
 Open Claude Code in the demo target project and paste a prompt shaped like:
@@ -33,7 +49,8 @@ Laptop:
 - [ ] `npm start` running in `sisyphus/` (orchestrator on :4100).
 - [ ] Dashboard open on a spare screen → **Configure** tab shows the QR + phones.
 - [ ] Claude Code open in the demo target project (with `.mcp.json` + the
-      `/sisyphus` skill wired — automatic if that's the sisyphus repo root).
+      `/sisyphus` skill wired — automatic at the sisyphus repo root; for any
+      other project, copy both in and set `SISYPHUS_HOME` first, see top).
 - [ ] Target project reset to a clean state (`git checkout -- .` in it).
 
 Phones (each):

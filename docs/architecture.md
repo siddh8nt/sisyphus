@@ -173,6 +173,17 @@ MCP → orchestrator HTTP: `POST /api/session/start`, `POST /api/session/log`,
 `POST /api/session/delegate` (blocking), `POST /api/session/approve`,
 `GET /api/session/tasks`, `POST /api/session/complete`, `GET /api/status`.
 
+**Launch / portability.** `.mcp.json` launches the server as
+`node ${SISYPHUS_HOME:-.}/mcp/index.js` (Claude Code expands `${VAR:-default}`
+at startup). At the sisyphus repo root `SISYPHUS_HOME` is unset → `.` → works
+zero-config. To drive **any other project**, copy `.mcp.json` +
+`.claude/skills/sisyphus/` into it and set `SISYPHUS_HOME` to the sisyphus
+checkout: node resolves the server + its `node_modules` from that install
+(module resolution walks up from the script file, not cwd), while the process
+**cwd stays the project you opened Claude Code in** — so `sisyphus_apply`'s
+`process.cwd()` writes gate-passed files into that project's tree.
+`SISYPHUS_ORCH` (default `http://127.0.0.1:4100`) still points at the hub.
+
 ## `/sisyphus` skill (repo root `.claude/skills/sisyphus/SKILL.md`, paired with root `.mcp.json`)
 Flow: status → decompose (capacity-budgeted) → log reasoning → delegate
 (precise specs + baked-in tests + estTokens/confidence) → operator approves

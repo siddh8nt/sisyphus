@@ -1091,3 +1091,29 @@ rule; `demo/target-app/` stays pristine and this includes its SKILL.md).
 - **Docs updated:** architecture.md (task_result fields, hello pricing, new
   §Cloud-savings metric), DEMO_SCRIPT.md (2:10 beat now points at the banner),
   prd.md (demo flow step 7), SKILL.md (final summary includes ₹ saved).
+
+## 2026-08-30 — /sisyphus works against any project (SISYPHUS_HOME)
+
+- **Problem:** `.mcp.json` launched the MCP server with a *relative* arg
+  (`node mcp/index.js`), so it only resolved when Claude Code was opened at the
+  sisyphus repo root. The "copy `.mcp.json` + the skill into any project" flow
+  in the demo docs was silently broken — no `mcp/` dir in the target → server
+  never starts → `/sisyphus` just falls back to Claude doing everything.
+- **Fix:** `.mcp.json` now uses `node ${SISYPHUS_HOME:-.}/mcp/index.js` (+
+  `SISYPHUS_ORCH` defaulted the same way). Claude Code expands `${VAR:-default}`
+  in args at startup (verified via code.claude.com/docs/en/mcp). Unset → `.` →
+  repo-root flow unchanged, zero config. Set to the sisyphus checkout → absolute
+  path, so the server launches from anywhere.
+- **Why it's correct:** node resolves the script AND its node_modules from the
+  script file's location (walks up from `mcp/index.js`), NOT from cwd — verified
+  by importing the server from a foreign scratch cwd (deps `@modelcontextprotocol/sdk`
+  + `zod` resolved fine). Meanwhile `process.cwd()` stays the dir Claude Code was
+  opened in, which is exactly what `sisyphus_apply` uses to write gate-passed
+  files — so they land in the *target* project's tree.
+- **Usage for another project:** copy `.mcp.json` + `.claude/skills/sisyphus/`
+  in, then `PowerShell: $env:SISYPHUS_HOME="C:\path\to\sisyphus"` (or
+  `export SISYPHUS_HOME=/path/to/sisyphus`) BEFORE launching Claude Code from
+  that same shell.
+- **Docs updated:** README (Running the demo), demo/DEMO_SCRIPT.md (intro block +
+  checklist), docs/VENUE_RUNBOOK.md Part E, docs/architecture.md (new
+  Launch/portability note under the MCP server section).
